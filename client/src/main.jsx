@@ -1,11 +1,11 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {Sprout, Languages, ArrowRight, ArrowLeft, CheckCircle2, ClipboardList, ShieldCheck, Leaf, MapPin, CircleHelp, LoaderCircle} from 'lucide-react';
 import './styles.css';
 
 const sections = [
  {id:'profile', icon:'profile', en:'Farmer profile', hi:'किसान की जानकारी', descEn:'Help us understand your farming background.', descHi:'अपनी खेती के बारे में बताएं।', questions:[
-  {id:'name',type:'text',en:'What is your name? (Optional)',hi:'आपका नाम क्या है? (वैकल्पिक)',placeholder:'Your name'},
+  {id:'name',type:'text',required:true,en:'What is your name?',hi:'आपका नाम क्या है?',placeholder:'Your name'},
   {id:'location',type:'text',required:true,en:'Village, block and district where you farm',hi:'आप किस गाँव, ब्लॉक और जिले में खेती करते हैं?',placeholder:'Village, Block, District'},
   {id:'age',type:'radio',required:true,en:'What is your age group?',hi:'आपकी उम्र किस समूह में है?',options:[['18–30 years','18–30 वर्ष'],['31–45 years','31–45 वर्ष'],['46–60 years','46–60 वर्ष'],['Above 60 years','60 वर्ष से अधिक']]},
   {id:'experience',type:'radio',required:true,en:'How long have you been farming?',hi:'आप कितने समय से खेती कर रहे हैं?',options:[['1–5 years','1–5 वर्ष'],['6–10 years','6–10 वर्ष'],['More than 10 years','10 वर्ष से अधिक']]},
@@ -61,20 +61,117 @@ const stakeholderQuestions = [
 ];
 const allSections = (type)=> type==='stakeholder' ? [{id:'stakeholder',en:'FPO & stakeholder interview',hi:'FPO और कृषि हितधारक',descEn:'Tell us about the farmers and services your organisation supports.',descHi:'अपने संगठन और किसानों के बारे में जानकारी दें।',questions:stakeholderQuestions}] : sections;
 function App(){
- const [lang,setLang]=useState('en'); const [type,setType]=useState('farmer'); const [step,setStep]=useState(0); const [answers,setAnswers]=useState({}); const [consent,setConsent]=useState(false); const [status,setStatus]=useState('idle'); const [receipt,setReceipt]=useState(null); const [error,setError]=useState('');
- const activeSections=useMemo(()=>allSections(type),[type]); const section=activeSections[step]; const total=activeSections.length; const progress=Math.round(((step+1)/total)*100); const tr=(q,key='en')=>q[lang]||q.en;
+ const [lang,setLang]=useState('hi');
+ const [type,setType]=useState('farmer');
+ const [step,setStep]=useState(0);
+ const [answers,setAnswers]=useState({});
+ const [consent,setConsent]=useState(false);
+ const [status,setStatus]=useState('idle');
+ const [receipt,setReceipt]=useState(null);
+ const [error,setError]=useState('');
+ const [draftKey,setDraftKey]=useState(()=>{
+  const storageKey='khushhal-kisan-draft-key';
+  let key=localStorage.getItem(storageKey);
+  if(!key){key=crypto.randomUUID();localStorage.setItem(storageKey,key);}
+  return key;
+ });
+ const [draftReady,setDraftReady]=useState(false);
+ const saveQueue=useRef(Promise.resolve());
+ const apiBase=(import.meta.env.VITE_API_URL||'http://localhost:5000').replace(/\/$/,'');
+ const activeSections=useMemo(()=>allSections(type),[type]);
+ const section=activeSections[Math.min(step,activeSections.length-1)];
+ const total=activeSections.length;
+ const progress=Math.round(((step+1)/total)*100);
+ const tr=(q,key='en')=>q[lang]||q.en;
  const setAnswer=(id,value)=>setAnswers(a=>({...a,[id]:value}));
  const visibleQuestions=section.questions;
- function validate(){for(const q of visibleQuestions){if(q.required && !(Array.isArray(answers[q.id])?answers[q.id].length:answers[q.id]?.toString().trim())){setError(lang==='en'?`Please answer: ${q.en}`:`कृपया जवाब दें: ${q.hi}`);document.getElementById(q.id)?.scrollIntoView({behavior:'smooth',block:'center'});return false;} if(q.max && (answers[q.id]||[]).length>q.max){setError(lang==='en'?`Please select no more than ${q.max}.`:`कृपया अधिकतम ${q.max} विकल्प चुनें।`);return false;}} setError('');return true;}
- async function submit(){if(!validate())return;if(!consent){setError(lang==='en'?'Please confirm your consent to submit.':'जमा करने से पहले कृपया सहमति दें।');return;}setStatus('loading');setError('');try{const r=await fetch(`${import.meta.env.VITE_API_URL||'http://localhost:5000'}/api/surveys`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({language:lang,surveyType:type,answers,consent:true})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Could not submit survey');setReceipt(data);setStatus('success');}catch(e){setError((lang==='en'?'Submission failed: ':'जमा नहीं हो पाया: ')+e.message+(lang==='en'?' Please check your internet and try again.':' इंटरनेट जाँचकर दोबारा प्रयास करें।'));setStatus('idle');}}
- if(status==='success'&&receipt)return <div className="success-page"><div className="success-card"><div className="success-icon"><CheckCircle2 size={42}/></div><div className="eyebrow">KHUSHHAL KISAN · SURVEY</div><h1>{lang==='en'?'Thank you for sharing!':'अपना अनुभव साझा करने के लिए धन्यवाद!'}</h1><p>{lang==='en'?'Your response has been submitted successfully. Your feedback will help us design more useful farming support.':'आपका जवाब सफलतापूर्वक जमा हो गया है। आपका फीडबैक बेहतर कृषि सहायता बनाने में मदद करेगा।'}</p><div className="receipt"><span>{lang==='en'?'Your unique response ID':'आपकी यूनिक रिस्पॉन्स ID'}</span><strong>{receipt.responseId}</strong><button className="copy-btn" onClick={()=>navigator.clipboard?.writeText(receipt.responseId)}>{lang==='en'?'Copy ID':'ID कॉपी करें'}</button></div><div className="privacy-note"><ShieldCheck size={18}/><span>{lang==='en'?'Keep this ID for your records. Your answers are stored securely for survey analysis.':'इस ID को अपने पास रखें। आपके जवाब सर्वे विश्लेषण के लिए सुरक्षित रूप से स्टोर किए जाते हैं।'}</span></div><button className="primary full" onClick={()=>{setAnswers({});setConsent(false);setStep(0);setReceipt(null);setStatus('idle');setType('farmer');window.scrollTo(0,0)}}>{lang==='en'?'Submit another response':'एक और जवाब जमा करें'} <ArrowRight size={18}/></button></div></div>;
+
+ // Restore this browser's unfinished survey from the API.
+ useEffect(()=>{
+  let cancelled=false;
+  setDraftReady(false);
+  (async()=>{
+   try{
+    const response=await fetch(`${apiBase}/api/surveys/draft/${encodeURIComponent(draftKey)}`);
+    if(!response.ok) throw new Error('Draft could not be loaded');
+    const data=await response.json();
+    if(cancelled) return;
+    if(data.draft){
+     const saved=data.draft;
+     setType(saved.survey_type==='stakeholder'?'stakeholder':'farmer');
+     setLang(saved.language==='en'?'en':'hi');
+     setAnswers(saved.answers&&typeof saved.answers==='object'?saved.answers:{});
+     const count=saved.survey_type==='stakeholder'?1:sections.length;
+     setStep(Math.max(0,Math.min(Number(saved.current_step)||0,count-1)));
+    }
+   }catch(err){
+    if(!cancelled) console.warn('Draft restore unavailable:',err.message);
+   }finally{
+    if(!cancelled) setDraftReady(true);
+   }
+  })();
+  return ()=>{cancelled=true;};
+ },[draftKey,apiBase]);
+
+ // Debounced autosave. Requests are serialized so older answers cannot overwrite newer ones.
+ useEffect(()=>{
+  if(!draftReady||status==='success') return;
+  const snapshot={draftKey,surveyType:type,language:lang,answers,currentStep:step};
+  const timer=setTimeout(()=>{
+   saveQueue.current=saveQueue.current.catch(()=>{}).then(async()=>{
+    const response=await fetch(`${apiBase}/api/surveys/draft`,{
+     method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(snapshot)
+    });
+    if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(data.error||'Draft save failed');}
+   }).catch(err=>console.warn('Automatic draft save failed:',err.message));
+  },700);
+  return ()=>clearTimeout(timer);
+ },[draftReady,draftKey,type,lang,answers,step,status,apiBase]);
+
+ function validate(){
+  for(const q of visibleQuestions){
+   if(q.required && !(Array.isArray(answers[q.id])?answers[q.id].length:answers[q.id]?.toString().trim())){
+    setError(lang==='en'?`Please answer: ${q.en}`:`कृपया जवाब दें: ${q.hi}`);
+    document.getElementById(q.id)?.scrollIntoView({behavior:'smooth',block:'center'});
+    return false;
+   }
+   if(q.max && (answers[q.id]||[]).length>q.max){
+    setError(lang==='en'?`Please select no more than ${q.max}.`:`कृपया अधिकतम ${q.max} विकल्प चुनें।`);
+    return false;
+   }
+  }
+  setError('');
+  return true;
+ }
+
+ async function submit(){
+  if(!validate()) return;
+  if(!consent){setError(lang==='en'?'Please confirm your consent to submit.':'जमा करने से पहले कृपया सहमति दें।');return;}
+  setStatus('loading');setError('');
+  try{
+   // Flush any queued draft save before final submission.
+   await saveQueue.current.catch(()=>{});
+   const r=await fetch(`${apiBase}/api/surveys`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({draftKey,language:lang,surveyType:type,answers,consent:true})
+   });
+   const data=await r.json();
+   if(!r.ok) throw new Error(data.error||'Could not submit survey');
+   localStorage.removeItem('khushhal-kisan-draft-key');
+   setReceipt(data);setStatus('success');
+  }catch(e){
+   setError((lang==='en'?'Submission failed: ':'जमा नहीं हो पाया: ')+e.message+(lang==='en'?' Please check your internet and try again.':' इंटरनेट जाँचकर दोबारा प्रयास करें।'));
+   setStatus('idle');
+  }
+ }
+ if(status==='success'&&receipt)return <div className="success-page"><div className="success-card"><div className="success-icon"><CheckCircle2 size={42}/></div><div className="eyebrow">KHUSHHAL KISAN · SURVEY</div><h1>{lang==='en'?'Thank you for sharing!':'अपना अनुभव साझा करने के लिए धन्यवाद!'}</h1><p>{lang==='en'?'Your response has been submitted successfully. Your feedback will help us design more useful farming support.':'आपका जवाब सफलतापूर्वक जमा हो गया है। आपका फीडबैक बेहतर कृषि सहायता बनाने में मदद करेगा।'}</p><div className="receipt"><span>{lang==='en'?'Your unique response ID':'आपकी यूनिक रिस्पॉन्स ID'}</span><strong>{receipt.responseId}</strong><button className="copy-btn" onClick={()=>navigator.clipboard?.writeText(receipt.responseId)}>{lang==='en'?'Copy ID':'ID कॉपी करें'}</button></div><div className="privacy-note"><ShieldCheck size={18}/><span>{lang==='en'?'Keep this ID for your records. Your answers are stored securely for survey analysis.':'इस ID को अपने पास रखें। आपके जवाब सर्वे विश्लेषण के लिए सुरक्षित रूप से स्टोर किए जाते हैं।'}</span></div><button className="primary full" onClick={()=>{const nextKey=crypto.randomUUID();localStorage.setItem('khushhal-kisan-draft-key',nextKey);setDraftKey(nextKey);setDraftReady(false);setAnswers({});setConsent(false);setStep(0);setReceipt(null);setStatus('idle');setType('farmer');setLang('hi');window.scrollTo(0,0)}}>{lang==='en'?'Submit another response':'एक और जवाब जमा करें'} <ArrowRight size={18}/></button></div></div>;
  return <div className="app-shell"><header className="topbar"><a className="brand" href="#top"><span className="brand-mark"><Sprout size={26}/></span><span><b>Khushhal Kisan</b><small>{lang==='en'?'FARMER-FIRST AGRICULTURE':'किसान-केंद्रित कृषि'}</small></span></a><button className="lang-toggle" onClick={()=>setLang(lang==='en'?'hi':'en')}><Languages size={17}/>{lang==='en'?'हिंदी':'English'}</button></header>
  <main id="top"><section className="hero"><div className="hero-copy"><div className="pill"><span className="pulse"/>{lang==='en'?'FARMER NEEDS & MARKET VALIDATION':'किसान की जरूरतें और बाजार सर्वे'}</div><h1>{lang==='en'?<>Your experience.<br/><em>A better farming future.</em></>:<>आपका अनुभव।<br/><em>खेती का बेहतर भविष्य।</em></>}</h1><p>{lang==='en'?'Help us understand the real challenges farmers face and shape practical, trustworthy services through Khushhal Kisan.':'खेती की असली समस्याओं को समझने और Khushhal Kisan के जरिए उपयोगी व भरोसेमंद सेवाएँ बनाने में हमारी मदद करें।'}</p><div className="hero-points"><span><ShieldCheck size={17}/>{lang==='en'?'Your answers matter':'आपकी राय महत्वपूर्ण है'}</span><span><ClipboardList size={17}/>{lang==='en'?'About 5–8 minutes':'लगभग 5–8 मिनट'}</span></div></div><div className="hero-art"><div className="sun"/><div className="hill hill-back"/><div className="hill hill-front"/><div className="field-lines"/><div className="plant plant-a"><Sprout size={80}/></div><div className="plant plant-b"><Sprout size={56}/></div><div className="art-label"><Leaf size={16}/>{lang==='en'?'Built around farmers':'किसानों के लिए'}</div></div></section>
  <section className="survey-wrap"><aside className="sidebar"><div className="sidebar-title">{lang==='en'?'YOUR SURVEY':'आपका सर्वे'}<span>{String(step+1).padStart(2,'0')} / {String(total).padStart(2,'0')}</span></div><div className="progress-track"><div style={{width:`${progress}%`}}/></div><div className="steps">{activeSections.map((s,i)=><button key={s.id} className={`step ${step===i?'active':''} ${step>i?'done':''}`} onClick={()=>{if(i<=step){setStep(i);setError('')}}}><span className="step-num">{step>i?<CheckCircle2 size={17}/>:String(i+1).padStart(2,'0')}</span><span><b>{lang==='en'?s.en:s.hi}</b><small>{i===step?(lang==='en'?'IN PROGRESS': 'जारी है'):step>i?(lang==='en'?'Completed':'पूरा हुआ'):(lang==='en'?'Section':'सेक्शन')}</small></span></button>)}</div><div className="sidebar-help"><CircleHelp size={18}/><span>{lang==='en'?'There are no right or wrong answers. Share what is true for you.':'कोई सही या गलत जवाब नहीं। अपने अनुभव के अनुसार बताएं।'}</span></div></aside>
  <section className="form-panel"><div className="form-heading"><div className="section-kicker">{lang==='en'?`SECTION ${String(step+1).padStart(2,'0')} OF ${String(total).padStart(2,'0')}`:`सेक्शन ${step+1} / ${total}`}</div><h2>{lang==='en'?section.en:section.hi}</h2><p>{lang==='en'?section.descEn:section.descHi}</p></div>{step===0&&<div className="type-select"><span>{lang==='en'?'I am responding as':'मैं जवाब दे रहा/रही हूँ'}</span><div><button className={type==='farmer'?'selected':''} onClick={()=>{setType('farmer');setStep(0);setAnswers({})}}>{lang==='en'?'Farmer':'किसान'}</button><button className={type==='stakeholder'?'selected':''} onClick={()=>{setType('stakeholder');setStep(0);setAnswers({})}}>{lang==='en'?'FPO / Agriculture stakeholder':'FPO / कृषि हितधारक'}</button></div></div>}
  <div className="questions">{visibleQuestions.map((q,index)=><div className="question" key={q.id} id={q.id}><label className="question-label" htmlFor={q.id}><span className="q-number">{String(index+1).padStart(2,'0')}</span><span>{tr(q)}{q.required&&<i className="required"> *</i>}</span></label>{q.type==='text'&&<input id={q.id} value={answers[q.id]||''} onChange={e=>setAnswer(q.id,e.target.value)} placeholder={q.placeholder||''} />}{q.type==='textarea'&&<textarea id={q.id} rows="3" value={answers[q.id]||''} onChange={e=>setAnswer(q.id,e.target.value)} placeholder={q.placeholder|| (lang==='en'?'Write your answer…':'अपना जवाब लिखें…')}/>}{q.type==='radio'&&<div className="option-grid">{q.options.map(([en,hi])=><label className={`option ${answers[q.id]===en?'chosen':''}`} key={en}><input type="radio" name={q.id} value={en} checked={answers[q.id]===en} onChange={()=>setAnswer(q.id,en)}/><span className="radio-dot"/><span>{lang==='en'?en:hi}</span></label>)}</div>}{q.type==='checks'&&<><div className="option-grid">{q.options.map(([en,hi])=>{const vals=answers[q.id]||[];return <label className={`option ${vals.includes(en)?'chosen':''}`} key={en}><input type="checkbox" checked={vals.includes(en)} onChange={e=>setAnswer(q.id,e.target.checked?(q.max&&vals.length>=q.max?vals:[...vals,en]):vals.filter(v=>v!==en))}/><span className="check-box">{vals.includes(en)?'✓':''}</span><span>{lang==='en'?en:hi}</span></label>})}</div>{q.max&&<small className="hint">{lang==='en'?`Choose up to ${q.max} (${(answers[q.id]||[]).length} selected)`:`अधिकतम ${q.max} चुनें (${(answers[q.id]||[]).length} चुने गए)`}</small>}</>}</div>)}</div>
  {step===total-1&&<label className="consent"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/><span>{lang==='en'?'I voluntarily agree to share these answers with the Khushhal Kisan team for product research and survey analysis.':'मैं उत्पाद शोध और सर्वे विश्लेषण के लिए ये जवाब Khushhal Kisan टीम के साथ साझा करने की स्वेच्छा से सहमति देता/देती हूँ।'}</span></label>}
- {error&&<div className="error-msg" role="alert">{error}</div>}<div className="form-footer"><div className="footer-note"><ShieldCheck size={16}/>{lang==='en'?'Your response is saved only after you submit.':'जवाब जमा करने पर ही सेव होगा।'}</div><div className="nav-buttons">{step>0&&<button className="secondary" onClick={()=>{setStep(step-1);setError('')}}><ArrowLeft size={17}/>{lang==='en'?'Back':'वापस'}</button>}{step<total-1?<button className="primary" onClick={()=>{if(validate()){setStep(step+1);setError('');document.querySelector('.form-panel')?.scrollIntoView({behavior:'smooth',block:'start'})}}}>{lang==='en'?'Continue':'आगे बढ़ें'}<ArrowRight size={17}/></button>:<button className="primary" onClick={submit} disabled={status==='loading'}>{status==='loading'?<><LoaderCircle className="spin" size={18}/>{lang==='en'?'Submitting…':'जमा हो रहा है…'}</>:<>{lang==='en'?'Submit survey':'सर्वे जमा करें'}<ArrowRight size={17}/></>}</button>}</div></div></section></section>
+ {error&&<div className="error-msg" role="alert">{error}</div>}<div className="form-footer"><div className="footer-note"><ShieldCheck size={16}/>{lang==='en'?'Your progress is saved automatically.':'आपकी जानकारी अपने आप सेव होती रहती है।'}</div><div className="nav-buttons">{step>0&&<button className="secondary" onClick={()=>{setStep(step-1);setError('')}}><ArrowLeft size={17}/>{lang==='en'?'Back':'वापस'}</button>}{step<total-1?<button className="primary" onClick={()=>{if(validate()){setStep(step+1);setError('');document.querySelector('.form-panel')?.scrollIntoView({behavior:'smooth',block:'start'})}}}>{lang==='en'?'Continue':'आगे बढ़ें'}<ArrowRight size={17}/></button>:<button className="primary" onClick={submit} disabled={status==='loading'}>{status==='loading'?<><LoaderCircle className="spin" size={18}/>{lang==='en'?'Submitting…':'जमा हो रहा है…'}</>:<>{lang==='en'?'Submit survey':'सर्वे जमा करें'}<ArrowRight size={17}/></>}</button>}</div></div></section></section>
  <footer><div className="footer-brand"><Sprout size={20}/><b>Khushhal Kisan</b></div><span>{lang==='en'?'A farmer-first support platform · Uttar Pradesh, India':'किसान-केंद्रित सहायता प्लेटफॉर्म · उत्तर प्रदेश, भारत'}</span><small>© {new Date().getFullYear()} AiVirinchi Private Limited</small></footer></main></div>
 }
 
