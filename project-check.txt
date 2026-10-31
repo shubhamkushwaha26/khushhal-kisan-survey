@@ -1,0 +1,58 @@
+===== ROOT FILES =====
+
+Mode   Name                         
+----   ----                         
+d--h-- .git                         
+d----- client                       
+d----- node_modules                 
+d----- server                       
+-a---- .gitignore                   
+-a---- khushhal-kisan-diagnostic.txt
+-a---- package-lock.json            
+-a---- package.json                 
+-a---- project-check.txt            
+-a---- README.md                    
+-a---- survey-source-files.zip      
+
+
+
+
+===== client =====
+
+Mode   Name              Length
+----   ----              ------
+d----- node_modules            
+d----- src                     
+-a---- .env              111   
+-a---- .env.example      111   
+-a---- index.html        413   
+-a---- package-lock.json 59155 
+-a---- package.json      342   
+
+
+
+
+===== client\src =====
+
+Mode   Name       Length
+----   ----       ------
+-a---- main.jsx    31704
+-a---- styles.css  11691
+
+
+
+
+===== server =====
+
+Mode   Name              Length
+----   ----              ------
+d----- node_modules            
+-a---- .env              131   
+-a---- .env.example      146   
+-a---- index.js          3738  
+-a---- package-lock.json 36814 
+-a---- package.json      260   
+-a---- schema.sql        613   
+
+
+
