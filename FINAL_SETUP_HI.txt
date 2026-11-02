@@ -1,0 +1,55 @@
+KHUSHHAL KISAN SURVEY — FINAL SOURCE
+====================================
+
+IMPORTANT: This ZIP does NOT contain .env, passwords, database backups, or node_modules.
+
+SAFE UPDATE STEPS (Windows PowerShell)
+--------------------------------------
+1. Stop the currently running survey server/client (Ctrl + C in their terminals).
+2. Take a PostgreSQL backup from pgAdmin before the first launch of this version.
+3. Extract this ZIP into the EXISTING project folder:
+   C:\Projects\khushhal-kisan-survey
+   Allow same-name source files to be replaced. Do not delete the project folder.
+4. Keep this existing file unchanged:
+   server\.env
+   It must continue pointing to the SAME PostgreSQL database used by the old survey.
+5. Open PowerShell in C:\Projects\khushhal-kisan-survey and run:
+
+   npm install
+   npm run install:all
+   npm run dev
+
+6. Open the Vite URL shown in the terminal (normally http://localhost:5173).
+   The API normally runs on http://localhost:5000.
+
+DATABASE SAFETY
+---------------
+- The server runs server/schema.sql automatically when it starts.
+- The SQL is intended to add missing columns/indexes and backfill old JSONB answers;
+  it does not intentionally delete survey rows.
+- The duplicate farmer-ID migration block was removed.
+- The real database schema and live .env were not included in the uploaded ZIP,
+  so the migration has NOT been tested against your actual database.
+- Keep the PostgreSQL backup. If startup prints "Database initialization failed",
+  stop the server and share that exact error. Do not delete or recreate the database.
+- Do not upload or share server\.env.
+
+FEATURES CHECKED IN SOURCE
+--------------------------
+- Language selection at the start: Hindi, English, Assamese.
+- Language can be changed while filling the survey.
+- Name and valid Indian mobile number are mandatory for farmer and stakeholder forms.
+- WhatsApp group Yes/No is mandatory, with the requested connect/latest-farming-information text.
+- Email is optional.
+- Empty answers are normalized to SQL NULL in question columns and JSON answers.
+- Standard radio/checkbox options are stored using their English option values.
+- Free-text answers remain in the language entered by the respondent.
+- Existing response IDs and draft-key duplicate protection are retained.
+
+VALIDATION PERFORMED
+--------------------
+- Backend JavaScript syntax check: passed.
+- Frontend JSX transpilation/syntax check: passed.
+- Frontend question IDs vs backend question-column mapping: all 45 mapped.
+- Full npm production build was not run because dependencies were not available
+  in the offline review environment. Run npm install on your Windows machine.

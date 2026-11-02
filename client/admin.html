@@ -1,0 +1,193 @@
+﻿@'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Khushhal Kisan Admin</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f6f1;color:#203326;font-family:Arial,sans-serif}
+header{background:#174d32;color:white;padding:20px 6%}main{max-width:1000px;margin:35px auto;padding:0 16px}
+.card{background:white;padding:25px;border-radius:12px;margin-bottom:20px;box-shadow:0 3px 15px #0000000d}
+input{display:block;width:100%;padding:13px;margin:12px 0;border:1px solid #ccd7ce;border-radius:7px}
+button{padding:12px 18px;border:0;border-radius:7px;background:#17643b;color:white;cursor:pointer;margin:5px}
+.hidden{display:none}.stats{display:flex;gap:15px;flex-wrap:wrap}.stat{flex:1;min-width:140px;background:#edf5ee;padding:18px;border-radius:8px}
+.stat strong{display:block;font-size:27px;margin-top:8px}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:12px;text-align:left;border-bottom:1px solid #ddd}
+#message{color:#a12b2b;margin-top:12px}
+</style>
+</head>
+<body>
+<header><h2>&#x1F331; Khushhal Kisan | Admin Panel</h2></header>
+<main>
+<section class="card" id="login">
+<h2>Admin Login</h2>
+<form id="loginForm">
+<input id="username" placeholder="Admin Username" required>
+<input id="password" type="password" placeholder="Password" required>
+<button type="submit">Login</button>
+</form>
+<div id="message"></div>
+</section>
+<section id="dashboard" class="hidden">
+<div class="card">
+<h2>Survey Dashboard</h2>
+<div class="stats">
+<div class="stat">Farmer Surveys<strong id="farmers">0</strong></div>
+<div class="stat">Stakeholder Surveys<strong id="stakeholders">0</strong></div>
+<div class="stat">Total Records<strong id="total">0</strong></div><div class="stat">Total Draft<strong id="drafts">0</strong></div><div class="stat">Total Submitted<strong id="submitted">0</strong></div>
+</div>
+<button onclick="loadRecords()">Refresh</button>
+<button onclick="downloadExcel()">Download Excel</button>
+<button onclick="logout()">Logout</button>
+<p id="status"></p>
+</div>
+<div class="card">
+<h3>Recent Survey Records</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Response ID</th><th>Name</th><th>Type</th><th>Status</th><th>Submitted</th></tr></thead>
+<tbody id="records"></tbody>
+</table>
+</div>
+</div>
+</section>
+</main>
+<script>
+const API='http://localhost:5000';
+let token='';
+let currentOffset=0;
+const pageSize=50;
+const $=id=>document.getElementById(id);
+
+function safe(value){
+ const td=document.createElement('td');
+ td.textContent=value??'';
+ return td;
+}
+
+$('loginForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ $('message').textContent='Logging in...';
+ try{
+  const r=await fetch(API+'/api/admin/login',{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({username:$('username').value.trim(),password:$('password').value})
+  });
+  const d=await r.json();
+  if(!r.ok)throw new Error(d.message||'Login failed');
+  token=d.token;
+  sessionStorage.setItem('kk_admin_token',token);
+  $('login').classList.add('hidden');
+  $('dashboard').classList.remove('hidden');
+  loadRecords();
+ }catch(err){$('message').textContent=err.message;}
+});
+
+async function loadRecords(){
+ $('status').textContent='Loading records...';
+ try{
+  const r=await fetch(API+'/api/admin/surveys?limit='+pageSize+'&offset='+currentOffset,{
+   headers:{Authorization:'Bearer '+token}
+  });
+  const d=await r.json();
+  if(!r.ok)throw new Error(d.message||'Could not load records');
+
+  const sr=await fetch(API+'/api/admin/dashboard',{
+   headers:{Authorization:'Bearer '+token}
+  });
+  const sd=await sr.json();
+  if(!sr.ok)throw new Error(sd.message||'Could not load counts');
+
+  const s=sd.summary||{};
+  const rows=d.surveys||[];
+
+  $('farmers').textContent=s.farmer_surveys??0;
+  $('stakeholders').textContent=s.stakeholder_surveys??0;
+  $('drafts').textContent=s.total_drafts??0;
+  $('submitted').textContent=s.total_submitted??0;
+  $('total').textContent=d.total??0;
+
+  $('records').replaceChildren();
+  rows.forEach(x=>{
+   const tr=document.createElement('tr');
+   const statusCell=document.createElement('td');
+   statusCell.textContent=x.status||'';
+   if(x.submitted_at||x.created_at){const small=document.createElement('small');small.textContent=new Date(x.submitted_at||x.created_at).toLocaleString('en-IN');small.style.display='block';small.style.marginTop='4px';statusCell.append(small);}
+   tr.append(
+    safe(x.response_id),
+    safe(x.answers?.name),
+    safe(x.survey_type),
+    safe(x.status),
+    safe(x.submitted_at ? new Date(x.submitted_at).toLocaleString("en-IN") : ""),
+   );
+   $('records').append(tr);
+  });
+
+  let pager=$('recordPagination');
+  if(!pager){
+   pager=document.createElement('div');
+   pager.id='recordPagination';
+   pager.style.marginTop='15px';
+   $('records').parentElement.parentElement.append(pager);
+  }
+  pager.replaceChildren();
+
+  const prev=document.createElement('button');
+  prev.textContent='Previous';
+  prev.disabled=currentOffset===0;
+  prev.onclick=()=>{currentOffset=Math.max(0,currentOffset-pageSize);loadRecords();};
+
+  const next=document.createElement('button');
+  next.textContent='Next';
+  next.disabled=currentOffset+pageSize>=d.total;
+  next.onclick=()=>{currentOffset+=pageSize;loadRecords();};
+
+  pager.append(prev,next);
+  $('status').textContent='Showing '+(currentOffset+1)+'-'+(currentOffset+rows.length)+' of '+d.total+' records.';
+ }catch(err){$('status').textContent=err.message;}
+}async function downloadExcel(){
+ $('status').textContent='Preparing Excel...';
+ try{
+  const r=await fetch(API+'/api/admin/export-excel',{
+   headers:{Authorization:'Bearer '+token}
+  });
+  if(!r.ok){
+   const d=await r.json().catch(()=>({}));
+   throw new Error(d.message||'Excel export endpoint is not ready yet.');
+  }
+  const blob=await r.blob();
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='Khushhal_Kisan_Survey_Data.xlsx';
+  a.click();URL.revokeObjectURL(url);
+  $('status').textContent='Excel downloaded.';
+ }catch(err){$('status').textContent=err.message;}
+}
+
+function logout(){
+ token='';
+ sessionStorage.removeItem('kk_admin_token');
+ $('dashboard').classList.add('hidden');
+ $('login').classList.remove('hidden');
+ $('password').value='';
+}
+token=sessionStorage.getItem('kk_admin_token')||'';
+if(token){
+ $('login').classList.add('hidden');
+ $('dashboard').classList.remove('hidden');
+ loadRecords();
+}
+</script>
+</body>
+</html>
+'@ | Set-Content "..\client\admin.html" -Encoding UTF8
+
+
+
+
+
+
+
+
