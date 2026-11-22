@@ -940,7 +940,6 @@ app.post('/api/surveys/draft', async (req, res) => {
       });
     }
 
-    await syncSurveyAnswerRows(client, result.rows[0].id, surveyType, answers);
     await client.query('COMMIT');
 
     return res.json({
