@@ -1,221 +1,248 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
-import {Sprout, Languages, ArrowRight, ArrowLeft, CheckCircle2, ClipboardList, ShieldCheck, Leaf, CircleHelp, LoaderCircle} from 'lucide-react';
+import {Sprout,Languages,CheckCircle2,ShieldCheck,UploadCloud,Leaf,ArrowRight,LoaderCircle} from 'lucide-react';
 import './styles.css';
+import {QUESTIONNAIRES,LANGS,TEXT,RATING_GUIDE} from './questionnaire';
 
-const sections = [
- {id:'profile', icon:'profile', en:'Farmer profile', hi:'किसान की जानकारी', descEn:'Help us understand your farming background.', descHi:'अपनी खेती के बारे में बताएं।', questions:[
-  {id:'name',type:'text',required:true,en:'What is your name?',hi:'आपका नाम क्या है?',placeholder:'Your name'},
-  {id:'mobile',type:'text',required:true,en:'What is your mobile number?',hi:'आपका मोबाइल नंबर क्या है?',placeholder:'10-digit mobile number'},
-  {id:'email',type:'text',required:false,en:'Email address (optional)',hi:'ईमेल पता (वैकल्पिक)',placeholder:'name@example.com'},
-  {id:'whatsappGroup',type:'radio',required:true,en:'To stay connected with us and receive the latest farming information, would you like to join our WhatsApp group?',hi:'हमसे जुड़े रहने और खेती की नई-नई जानकारी पाने के लिए क्या आप हमारे WhatsApp ग्रुप से जुड़ना चाहेंगे?',options:[['Yes','हाँ'],['No','नहीं']]},
-  {id:'location',type:'text',en:'Village, block and district where you farm',hi:'आप किस गाँव, ब्लॉक और जिले में खेती करते हैं?',placeholder:'Village, Block, District'},
-  {id:'age',type:'radio',en:'What is your age group?',hi:'आपकी उम्र किस समूह में है?',options:[['18–30 years','18–30 वर्ष'],['31–45 years','31–45 वर्ष'],['46–60 years','46–60 वर्ष'],['Above 60 years','60 वर्ष से अधिक']]},
-  {id:'experience',type:'radio',en:'How long have you been farming?',hi:'आप कितने समय से खेती कर रहे हैं?',options:[['1–5 years','1–5 वर्ष'],['6–10 years','6–10 वर्ष'],['More than 10 years','10 वर्ष से अधिक']]},
-  {id:'land',type:'radio',en:'How much agricultural land do you farm?',hi:'आपके पास कितनी कृषि भूमि है?',options:[['Less than 1 acre','1 एकड़ से कम'],['1–2 acres','1–2 एकड़'],['2–5 acres','2–5 एकड़'],['More than 5 acres','5 एकड़ से अधिक']]},
-  {id:'crops',type:'text',en:'Which crops do you grow?',hi:'आप कौन-कौन सी फसलें उगाते हैं?',placeholder:'e.g. wheat, paddy, potato'},
-  {id:'landOwnership',type:'radio',en:'Do you farm your own land or leased/rented land?',hi:'आप अपनी जमीन पर खेती करते हैं या पट्टे/किराये पर?',options:[['Own land','अपनी जमीन'],['Leased/rented land','पट्टे/किराये की जमीन'],['Both','दोनों']]}
- ]},
- {id:'challenges',icon:'challenges',en:'Your farming challenges',hi:'खेती की चुनौतियाँ',descEn:'Your real experiences help us focus on the problems that matter most.',descHi:'आपके अनुभव हमें असली समस्याओं को समझने में मदद करेंगे।',questions:[
-  {id:'topProblems',type:'textarea',en:'What are the top 3 problems you face in farming?',hi:'खेती में आपको सबसे बड़ी 3 समस्याएँ कौन-सी आती हैं?',placeholder:'Describe your biggest challenges…'},
-  {id:'seriousProblems',type:'checks',max:5,en:'Which problems are most serious for you? (Select up to 5)',hi:'आपके लिए कौन-सी समस्याएँ सबसे गंभीर हैं? (अधिकतम 5 चुनें)',options:[['Crop disease or pest attack','फसल में रोग या कीट का हमला'],['Unreliable weather information','मौसम की सही जानकारी न मिलना'],['Irrigation or water shortage','सिंचाई या पानी की कमी'],['Correct fertilizer/pesticide use','खाद/कीटनाशक का सही उपयोग'],['Soil quality and soil health','मिट्टी की गुणवत्ता और स्वास्थ्य'],['Low market price','फसल का कम बाजार भाव'],['High production cost','उत्पादन लागत अधिक होना'],['Labour availability','मजदूरों की उपलब्धता'],['Government scheme information','सरकारी योजनाओं की जानकारी'],['Other','अन्य']]},
-  {id:'financialLoss',type:'textarea',en:'Which problem caused you the greatest financial loss last season?',hi:'पिछले सीजन में किस समस्या से आपको सबसे ज्यादा आर्थिक नुकसान हुआ?',placeholder:'Problem and approximate loss (if known)'},
-  {id:'diseaseExperience',type:'textarea',en:'Have your crops faced disease or pest attacks? How did you identify and treat them?',hi:'क्या आपकी फसल में रोग या कीट का हमला हुआ? आपने पहचान और उपचार कैसे किया?',placeholder:'Tell us what happened…'},
-  {id:'infoSources',type:'checks',en:'Where do you currently get farming advice?',hi:'अभी आपको खेती की सलाह कहाँ से मिलती है?',options:[['Agriculture officer / KVK','कृषि अधिकारी / KVK'],['Local dealer / input shop','स्थानीय डीलर / कृषि दुकान'],['Experienced farmers','अनुभवी किसान'],['YouTube / Google','YouTube / Google'],['WhatsApp groups','WhatsApp ग्रुप'],['Agriculture mobile apps','कृषि मोबाइल ऐप'],['Other','अन्य']]},
-  {id:'infoGaps',type:'textarea',en:'What is missing or frustrating about your current information sources?',hi:'मौजूदा जानकारी के साधनों में आपको क्या कमी लगती है?',placeholder:'What could be better?'},
-  {id:'seasonCost',type:'text',en:'Approximate farming expense and loss per season (optional)',hi:'एक सीजन में खेती का अनुमानित खर्च और नुकसान (वैकल्पिक)',placeholder:'e.g. expense ₹25,000; loss ₹5,000'}
- ]},
- {id:'digital',icon:'digital',en:'Technology & AI services',hi:'तकनीक और AI सेवाएँ',descEn:'Tell us which digital support would be genuinely useful to you.',descHi:'बताएं कि कौन-सी डिजिटल सहायता आपके काम आएगी।',questions:[
-  {id:'smartphone',type:'radio',en:'Do you use a smartphone?',hi:'क्या आप स्मार्टफोन इस्तेमाल करते हैं?',options:[['Daily','रोज़'],['Sometimes','कभी-कभी'],['No','नहीं']]},
-  {id:'appsUsed',type:'textarea',en:'Have you used an agriculture app or digital farming service? Which one and how was your experience?',hi:'क्या आपने कृषि ऐप या डिजिटल सेवा इस्तेमाल की है? कौन-सी और अनुभव कैसा रहा?',placeholder:'App/service name and experience'},
-  {id:'photoDiagnosis',type:'radio',en:'Would photo-based crop disease/pest identification and treatment guidance be useful?',hi:'क्या फोटो से फसल के रोग/कीट की पहचान और उपचार की सलाह उपयोगी होगी?',options:[['Very useful','बहुत उपयोगी'],['Somewhat useful','थोड़ी उपयोगी'],['Not useful','उपयोगी नहीं'],['Not sure','पता नहीं']]},
-  {id:'digitalNeeds',type:'checks',max:3,en:'Which digital services do you need most? (Select up to 3)',hi:'आपको कौन-सी डिजिटल सेवाएँ सबसे ज्यादा चाहिए? (अधिकतम 3)',options:[['Crop disease detection','फसल रोग की पहचान'],['Weather and rain alerts','मौसम और बारिश अलर्ट'],['Irrigation scheduling','सिंचाई का सही समय'],['Soil health and fertilizer advice','मिट्टी की सेहत और खाद की सलाह'],['Pest management guidance','कीट प्रबंधन सलाह'],['Crop planning and sowing guidance','फसल योजना और बुवाई सलाह'],['Mandi prices and market information','मंडी भाव और बाजार जानकारी'],['Government scheme information','सरकारी योजनाओं की जानकारी'],['Local-language agriculture expert support','स्थानीय भाषा में कृषि विशेषज्ञ सहायता']]},
-  {id:'language',type:'radio',en:'Which language or format would you prefer?',hi:'आप किस भाषा या तरीके में जानकारी पसंद करेंगे?',options:[['Hindi','हिंदी'],['English','अंग्रेज़ी'],['Assamese','অসমীয়া'],['Local/regional language','स्थानीय/क्षेत्रीय भाषा'],['Voice-based guidance','आवाज़ के जरिए सलाह']]},
-  {id:'trustFactors',type:'checks',en:'What would help you trust a recommendation?',hi:'सलाह पर भरोसा करने के लिए आपको क्या चाहिए?',options:[['Agriculture expert confirmation','कृषि विशेषज्ञ की पुष्टि'],['Local agriculture department recommendation','स्थानीय कृषि विभाग की सलाह'],['Explanation with recommendation','सलाह के साथ कारण/समझाइश'],['Other farmers’ reviews','दूसरे किसानों की राय'],['Option to try it first','पहले आजमाने का विकल्प']]},
-  {id:'digitalBarriers',type:'checks',en:'What could make a digital agriculture service difficult to use?',hi:'डिजिटल कृषि सेवा इस्तेमाल करने में क्या परेशानी हो सकती है?',options:[['Internet connectivity','इंटरनेट की समस्या'],['Difficulty using a smartphone','स्मार्टफोन चलाने में कठिनाई'],['Lack of trust','भरोसे की कमी'],['Language problem','भाषा की समस्या'],['Cost','खर्च'],['Doubt about accuracy','सही परिणाम मिलने का संदेह'],['No difficulty expected','कोई परेशानी नहीं']]}
- ]},
- {id:'payment',icon:'payment',en:'Service preference & payment',hi:'सेवा की पसंद और भुगतान',descEn:'There are no right or wrong answers. Please share your honest preference.',descHi:'कोई सही या गलत जवाब नहीं है। अपनी वास्तविक पसंद बताएं।',questions:[
-  {id:'useIntent',type:'radio',en:'Would you use a service that helps identify crop problems and gives practical guidance?',hi:'क्या आप फसल की समस्या पहचानने और उपयोगी सलाह देने वाली सेवा इस्तेमाल करेंगे?',options:[['Yes','हाँ'],['Maybe','शायद'],['No','नहीं']]},
-  {id:'paymentModel',type:'radio',en:'Which payment model would you prefer?',hi:'आप भुगतान का कौन-सा तरीका पसंद करेंगे?',options:[['Completely free','पूरी तरह मुफ्त'],['Pay per consultation','हर सलाह के लिए भुगतान'],['Monthly subscription','मासिक सदस्यता'],['Per crop/season','हर फसल/सीजन के लिए'],['Through FPO/cooperative','FPO/सहकारी संस्था के जरिए'],['Sponsored by an agriculture company/institution','कृषि कंपनी/संस्था द्वारा प्रायोजित']]},
-  {id:'willingnessToPay',type:'radio',en:'If paid, what amount seems reasonable?',hi:'अगर सेवा paid हो, तो कितना भुगतान उचित लगेगा?',options:[['₹0 — free only','₹0 — केवल मुफ्त सेवा'],['₹10–₹30 per consultation','₹10–₹30 प्रति सलाह'],['₹31–₹100 per consultation','₹31–₹100 प्रति सलाह'],['₹100–₹300 per month','₹100–₹300 प्रति माह'],['More than ₹300 if value is proven','₹300 से अधिक, यदि फायदा साबित हो'],['Would like a trial first','पहले ट्रायल करना चाहूँगा']]},
-  {id:'paymentConditions',type:'textarea',en:'Under what conditions would you be willing to pay?',hi:'किन परिस्थितियों में आप भुगतान करने को तैयार होंगे?',placeholder:'What value or proof would you need?'},
-  {id:'pilot',type:'radio',en:'Would you join a free pilot and share feedback during a real farming season?',hi:'क्या आप मुफ्त पायलट में शामिल होकर खेती के सीजन में फीडबैक देंगे?',options:[['Yes, and I can give feedback','हाँ, मैं फीडबैक दे सकता हूँ'],['Maybe, tell me more','शायद, पहले और जानकारी चाहिए'],['No','नहीं']]}
- ]},
- {id:'interview',icon:'interview',en:'Your experience & feedback',hi:'आपका अनुभव और सुझाव',descEn:'A few open questions help us understand the real story behind the numbers.',descHi:'कुछ खुले सवालों से हमें आपकी वास्तविक समस्या समझने में मदद मिलेगी।',questions:[
-  {id:'recentProblem',type:'textarea',en:'Tell us about a recent serious farming problem and how you solved it.',hi:'खेती में आई किसी हाल की गंभीर समस्या और उसे हल करने का तरीका बताएं।',placeholder:'Your experience…'},
-  {id:'timelyBenefit',type:'textarea',en:'What benefit would you have received if you had found a solution on time?',hi:'अगर समय पर समाधान मिल जाता, तो आपको क्या फायदा होता?',placeholder:'Time, money, crop quality, yield…'},
-  {id:'paidServices',type:'textarea',en:'Have you paid for an agriculture service, consultant, app or product? What was the result?',hi:'क्या आपने कृषि सेवा, सलाहकार, ऐप या उत्पाद के लिए पैसे दिए हैं? नतीजा क्या रहा?',placeholder:'Optional details'},
-  {id:'trustEvidence',type:'textarea',en:'What evidence would you need to trust an agriculture technology solution?',hi:'कृषि तकनीक के समाधान पर भरोसा करने के लिए आपको क्या प्रमाण चाहिए?',placeholder:'e.g. expert approval, trial results…'},
-  {id:'firstProblem',type:'textarea',en:'If Khushhal Kisan could solve one farming problem first, which should it be?',hi:'अगर Khushhal Kisan पहले आपकी एक समस्या हल करे, तो वह कौन-सी हो?',placeholder:'Your top priority…'},
-  {id:'recommend',type:'textarea',en:'Would you recommend this service to other farmers? Why or why not?',hi:'क्या आप यह सेवा दूसरे किसानों को सुझाएंगे? क्यों या क्यों नहीं?',placeholder:'Your reason'},
-  {id:'referral',type:'text',en:'Can you connect us with another farmer, FPO representative or agriculture expert? (Optional)',hi:'क्या आप किसी अन्य किसान, FPO प्रतिनिधि या कृषि विशेषज्ञ से मिलवा सकते हैं? (वैकल्पिक)',placeholder:'Name/contact only if they agree'}
- ]}
-];
-const stakeholderQuestions = [
- {id:'name',type:'text',required:true,en:'What is your name?',hi:'आपका नाम क्या है?',placeholder:'Your name'},
- {id:'mobile',type:'text',required:true,en:'What is your mobile number?',hi:'आपका मोबाइल नंबर क्या है?',placeholder:'10-digit mobile number'},
- {id:'email',type:'text',required:false,en:'Email address (optional)',hi:'ईमेल पता (वैकल्पिक)',placeholder:'name@example.com'},
- {id:'whatsappGroup',type:'radio',required:true,en:'To stay connected with us and receive the latest farming information, would you like to join our WhatsApp group?',hi:'हमसे जुड़े रहने और खेती की नई-नई जानकारी पाने के लिए क्या आप हमारे WhatsApp ग्रुप से जुड़ना चाहेंगे?',options:[['Yes','हाँ'],['No','नहीं']]},
- {id:'farmersSupported',type:'text',en:'How many farmers do you work with?',hi:'आप कितने किसानों के साथ काम करते हैं?',placeholder:'Approximate number'},
- {id:'stakeholderProblems',type:'textarea',en:'What are their major farming problems?',hi:'किसानों की प्रमुख कृषि समस्याएँ क्या हैं?',placeholder:'Main problems'},
- {id:'guidanceProcess',type:'textarea',en:'How do you currently provide technical agriculture guidance?',hi:'अभी आप तकनीकी कृषि सलाह कैसे देते हैं?',placeholder:'Current process'},
- {id:'stakeholderLoss',type:'textarea',en:'How do disease, weather or crop-management issues affect farmers?',hi:'रोग, मौसम या फसल प्रबंधन की समस्याओं से किसानों को क्या नुकसान होता है?',placeholder:'Examples or estimates'},
- {id:'digitalTools',type:'textarea',en:'Have you implemented digital agriculture tools? How was adoption?',hi:'क्या आपने डिजिटल कृषि टूल लागू किए हैं? उनका उपयोग कैसा रहा?',placeholder:'Tools and adoption'},
- {id:'valueCreation',type:'textarea',en:'How could Khushhal Kisan create value for your farmers?',hi:'Khushhal Kisan आपके किसानों के लिए कैसे उपयोगी हो सकता है?',placeholder:'Expected value'},
- {id:'pilotReadiness',type:'radio',en:'Would you consider conducting a pilot with your farmers?',hi:'क्या आप अपने किसानों के साथ पायलट करना चाहेंगे?',options:[['Yes','हाँ'],['Maybe','शायद'],['No','नहीं']]},
- {id:'adoptionNeeds',type:'checks',en:'What would be needed for adoption?',hi:'इसे अपनाने के लिए क्या चाहिए?',options:[['Training','प्रशिक्षण'],['Expert support','विशेषज्ञ सहायता'],['Integration','इंटीग्रेशन'],['Funding','फंडिंग'],['Other','अन्य']]},
- {id:'sponsorship',type:'radio',en:'Would your organisation consider paying for or sponsoring the service?',hi:'क्या आपकी संस्था इस सेवा के भुगतान या प्रायोजन पर विचार करेगी?',options:[['Yes','हाँ'],['Maybe','शायद'],['No','नहीं']]}
-];
-const assameseQuestions = {"name": "আপোনাৰ নাম কি?", "mobile": "আপোনাৰ ম’বাইল নম্বৰ লিখক", "email": "ইমেইল ঠিকনা (ঐচ্ছিক)", "whatsappGroup": "আমাৰ সৈতে সংযুক্ত হৈ থাকিবলৈ আৰু খেতিৰ নতুন নতুন তথ্য লাভ কৰিবলৈ আপুনি আমাৰ WhatsApp গ্ৰুপত যোগদান কৰিব বিচাৰে নে?", "location": "আপুনি কোনখন গাঁও, উন্নয়ন খণ্ড আৰু জিলাত খেতি কৰে?", "age": "আপোনাৰ বয়স কিমান?", "experience": "আপুনি কিমান বছৰ ধৰি খেতি কৰি আহিছে?", "land": "আপুনি কিমান কৃষিভূমিত খেতি কৰে?", "crops": "আপুনি কি কি শস্যৰ খেতি কৰে?", "landOwnership": "আপুনি নিজৰ মাটিত নে ভাড়াত লোৱা মাটিত খেতি কৰে?", "topProblems": "খেতি কৰোঁতে আপুনি সন্মুখীন হোৱা ৩টা ডাঙৰ সমস্যা কি কি?", "seriousProblems": "আপোনাৰ বাবে কোনবোৰ সমস্যা আটাইতকৈ গুৰুতৰ?", "financialLoss": "যোৱা খেতিৰ বতৰত কোনটো সমস্যাৰ বাবে আপোনাৰ আটাইতকৈ বেছি আৰ্থিক ক্ষতি হৈছিল?", "diseaseExperience": "আপোনাৰ শস্যত ৰোগ বা কীট-পতংগৰ আক্ৰমণ হৈছিল নেকি? কেনেকৈ চিনাক্ত আৰু চিকিৎসা কৰিছিল?", "infoSources": "বৰ্তমান আপুনি খেতিৰ পৰামৰ্শ ক’ৰ পৰা লাভ কৰে?", "infoGaps": "বৰ্তমানৰ তথ্যৰ উৎসসমূহত আপোনাৰ কি অভাৱ বা অসুবিধা হয়?", "seasonCost": "প্ৰতি খেতিৰ বতৰত আনুমানিক খৰচ আৰু লোকচান", "smartphone": "আপুনি স্মাৰ্টফোন ব্যৱহাৰ কৰে নেকি?", "appsUsed": "আপুনি কৃষি এপ বা ডিজিটেল কৃষি সেৱা ব্যৱহাৰ কৰিছেনে? কোনটো আৰু অভিজ্ঞতা কেনেকুৱা?", "photoDiagnosis": "ফটোৰ জৰিয়তে শস্যৰ ৰোগ/কীট চিনাক্তকৰণ আৰু চিকিৎসাৰ পৰামৰ্শ আপোনাৰ বাবে উপযোগী হ’বনে?", "digitalNeeds": "আপোনাক কোনবোৰ ডিজিটেল সেৱাৰ আটাইতকৈ বেছি প্ৰয়োজন?", "language": "আপুনি কোনটো ভাষা বা মাধ্যমত তথ্য বিচাৰে?", "trustFactors": "কোনবোৰ কথাই আপোনাক পৰামৰ্শৰ ওপৰত বিশ্বাস কৰিবলৈ সহায় কৰিব?", "digitalBarriers": "ডিজিটেল কৃষি সেৱা ব্যৱহাৰ কৰোঁতে কি অসুবিধা হ’ব পাৰে?", "useIntent": "শস্যৰ সমস্যা চিনাক্ত কৰি ব্যৱহাৰিক পৰামৰ্শ দিয়া সেৱা আপুনি ব্যৱহাৰ কৰিবনে?", "paymentModel": "আপুনি কোনটো মূল্য পৰিশোধৰ পদ্ধতি পছন্দ কৰিব?", "willingnessToPay": "সেৱাৰ বাবে কিমান ধন পৰিশোধ কৰাটো যুক্তিসংগত হ’ব?", "paymentConditions": "কোনবোৰ চৰ্তত আপুনি ধন পৰিশোধ কৰিবলৈ ইচ্ছুক হ’ব?", "pilot": "বাস্তৱ খেতিৰ বতৰত বিনামূলীয়া পৰীক্ষামূলক কাৰ্যসূচীত যোগ দি মতামত দিবনে?", "recentProblem": "শেহতীয়াকৈ হোৱা এটা গুৰুতৰ কৃষি সমস্যা আৰু আপুনি কেনেকৈ সমাধান কৰিলে বৰ্ণনা কৰক।", "timelyBenefit": "সময়মতে সমাধান পালে আপোনাৰ কি লাভ হ’লহেঁতেন?", "paidServices": "আপুনি কৃষি সেৱা, পৰামৰ্শদাতা, এপ বা সামগ্ৰীৰ বাবে ধন দিছেনে? ফলাফল কি আছিল?", "trustEvidence": "কৃষি প্ৰযুক্তিৰ সমাধানৰ ওপৰত বিশ্বাস কৰিবলৈ আপুনি কি প্ৰমাণ বিচাৰিব?", "firstProblem": "Khushhal Kisan-এ প্ৰথমে আপোনাৰ এটা কৃষি সমস্যা সমাধান কৰিলে কোনটো হ’ব লাগে?", "recommend": "আপুনি এই সেৱা আন কৃষকক পৰামৰ্শ দিবনে? কিয়?", "referral": "আপুনি আন কোনো কৃষক, FPO প্ৰতিনিধি বা কৃষি বিশেষজ্ঞৰ সৈতে আমাক চিনাকি কৰাই দিব পাৰিবনে?", "farmersSupported": "আপুনি কিমানজন কৃষকৰ সৈতে কাম কৰে?", "stakeholderProblems": "তেওঁলোকৰ প্ৰধান কৃষি সমস্যাবোৰ কি?", "guidanceProcess": "বৰ্তমান আপুনি কেনেকৈ কৃষি-সম্পৰ্কীয় কাৰিকৰী পৰামৰ্শ দিয়ে?", "stakeholderLoss": "ৰোগ, বতৰ বা শস্য পৰিচালনাৰ সমস্যাই কৃষকক কেনেদৰে প্ৰভাৱিত কৰে?", "digitalTools": "আপুনি ডিজিটেল কৃষি সঁজুলি ৰূপায়ণ কৰিছেনে? ব্যৱহাৰ কেনেকুৱা?", "valueCreation": "Khushhal Kisan-এ আপোনাৰ কৃষকসকলৰ বাবে কেনেদৰে মূল্য সৃষ্টি কৰিব পাৰে?", "pilotReadiness": "আপুনি আপোনাৰ কৃষকসকলৰ সৈতে এটা পৰীক্ষামূলক কাৰ্যসূচী কৰিব বিচাৰিবনে?", "adoptionNeeds": "এই সেৱা গ্ৰহণ কৰিবলৈ কি কি প্ৰয়োজন হ’ব?", "sponsorship": "আপোনাৰ সংস্থাই এই সেৱাৰ বাবে ধন বা পৃষ্ঠপোষকতা কৰাৰ কথা বিবেচনা কৰিবনে?"};
-const assameseOptions = {"Yes": "হয়", "No": "নহয়", "Maybe": "হয়তো", "Daily": "প্ৰতিদিনে", "Sometimes": "কেতিয়াবা", "18–30 years": "১৮–৩০ বছৰ", "31–45 years": "৩১–৪৫ বছৰ", "46–60 years": "৪৬–৬০ বছৰ", "Above 60 years": "৬০ বছৰৰ ওপৰত", "1–5 years": "১–৫ বছৰ", "6–10 years": "৬–১০ বছৰ", "More than 10 years": "১০ বছৰতকৈ অধিক", "Less than 1 acre": "১ একৰতকৈ কম", "1–2 acres": "১–২ একৰ", "2–5 acres": "২–৫ একৰ", "More than 5 acres": "৫ একৰতকৈ অধিক", "Own land": "নিজৰ মাটি", "Leased/rented land": "ভাড়াত লোৱা মাটি", "Both": "দুয়োটা", "Crop disease or pest attack": "শস্যৰ ৰোগ বা কীট-পতংগৰ আক্ৰমণ", "Unreliable weather information": "বতৰৰ সঠিক তথ্যৰ অভাৱ", "Irrigation or water shortage": "জলসিঞ্চন বা পানীৰ অভাৱ", "Correct fertilizer/pesticide use": "সাৰ/কীটনাশকৰ সঠিক ব্যৱহাৰ", "Soil quality and soil health": "মাটিৰ গুণাগুণ আৰু স্বাস্থ্য", "Low market price": "বজাৰত কম দাম", "High production cost": "উৎপাদন ব্যয় অধিক", "Labour availability": "শ্ৰমিকৰ উপলব্ধতা", "Government scheme information": "চৰকাৰী আঁচনিৰ তথ্য", "Other": "অন্যান্য", "Agriculture officer / KVK": "কৃষি বিষয়া / KVK", "Local dealer / input shop": "স্থানীয় বিক্ৰেতা / কৃষি সামগ্ৰীৰ দোকান", "Experienced farmers": "অভিজ্ঞ কৃষক", "YouTube / Google": "YouTube / Google", "WhatsApp groups": "WhatsApp গ্ৰুপ", "Agriculture mobile apps": "কৃষি মোবাইল এপ", "Very useful": "অতি উপযোগী", "Somewhat useful": "কিছু পৰিমাণে উপযোগী", "Not useful": "উপযোগী নহয়", "Not sure": "নিশ্চিত নহয়", "Crop disease detection": "শস্যৰ ৰোগ চিনাক্তকৰণ", "Weather and rain alerts": "বতৰ আৰু বৰষুণৰ সতৰ্কবাণী", "Irrigation scheduling": "জলসিঞ্চনৰ সময় নিৰ্ধাৰণ", "Soil health and fertilizer advice": "মাটিৰ স্বাস্থ্য আৰু সাৰৰ পৰামৰ্শ", "Pest management guidance": "কীট-পতংগ নিয়ন্ত্ৰণৰ পৰামৰ্শ", "Crop planning and sowing guidance": "শস্য পৰিকল্পনা আৰু সিঁচাৰ পৰামৰ্শ", "Mandi prices and market information": "মাণ্ডিৰ দাম আৰু বজাৰৰ তথ্য", "Local-language agriculture expert support": "স্থানীয় ভাষাত কৃষি বিশেষজ্ঞৰ সহায়", "Hindi": "হিন্দী", "English": "ইংৰাজী", "Assamese": "অসমীয়া", "Local/regional language": "স্থানীয়/আঞ্চলিক ভাষা", "Voice-based guidance": "কণ্ঠস্বৰৰ জৰিয়তে পৰামৰ্শ", "Agriculture expert confirmation": "কৃষি বিশেষজ্ঞৰ নিশ্চিতকৰণ", "Local agriculture department recommendation": "স্থানীয় কৃষি বিভাগৰ পৰামৰ্শ", "Explanation with recommendation": "পৰামৰ্শৰ সৈতে ব্যাখ্যা", "Other farmers’ reviews": "আন কৃষকৰ মতামত", "Option to try it first": "প্ৰথমে পৰীক্ষা কৰাৰ সুবিধা", "Internet connectivity": "ইণ্টাৰনেট সংযোগৰ সমস্যা", "Difficulty using a smartphone": "স্মাৰ্টফোন ব্যৱহাৰৰ অসুবিধা", "Lack of trust": "বিশ্বাসৰ অভাৱ", "Language problem": "ভাষাৰ সমস্যা", "Cost": "খৰচ", "Doubt about accuracy": "সঠিকতাৰ ওপৰত সন্দেহ", "No difficulty expected": "কোনো অসুবিধা আশা কৰা নাই", "Completely free": "সম্পূৰ্ণ বিনামূলীয়া", "Pay per consultation": "প্ৰতিটো পৰামৰ্শৰ বাবে ধন", "Monthly subscription": "মাহেকীয়া সদস্যতা", "Per crop/season": "প্ৰতিটো শস্য/বতৰৰ বাবে", "Through FPO/cooperative": "FPO/সমবায়ৰ জৰিয়তে", "Sponsored by an agriculture company/institution": "কৃষি কোম্পানী/প্ৰতিষ্ঠানৰ পৃষ্ঠপোষকতাত", "₹0 — free only": "₹০ — কেৱল বিনামূলীয়া", "₹10–₹30 per consultation": "₹১০–₹৩০ প্ৰতিটো পৰামৰ্শ", "₹31–₹100 per consultation": "₹৩১–₹১০০ প্ৰতিটো পৰামৰ্শ", "₹100–₹300 per month": "₹১০০–₹৩০০ প্ৰতি মাহে", "More than ₹300 if value is proven": "লাভ প্ৰমাণিত হ’লে ₹৩০০তকৈ অধিক", "Would like a trial first": "প্ৰথমে পৰীক্ষা কৰিব বিচাৰোঁ", "Yes, and I can give feedback": "হয়, মই মতামত দিব পাৰিম", "Maybe, tell me more": "হয়তো, অধিক তথ্য দিয়ক", "Training": "প্ৰশিক্ষণ", "Expert support": "বিশেষজ্ঞৰ সহায়", "Integration": "সংহতি", "Funding": "পুঁজি"};
-const assameseSections = {"profile": ["কৃষকৰ তথ্য", "আপোনাৰ কৃষিৰ পটভূমি বুজিবলৈ আমাক সহায় কৰক।"], "challenges": ["আপোনাৰ কৃষিৰ প্ৰত্যাহ্বান", "আপোনাৰ বাস্তৱ অভিজ্ঞতাই গুৰুত্বপূৰ্ণ সমস্যাবোৰ বুজিবলৈ সহায় কৰে।"], "digital": ["প্ৰযুক্তি আৰু AI সেৱা", "কোনবোৰ ডিজিটেল সহায় আপোনাৰ বাবে উপযোগী হ’ব জনাওক।"], "payment": ["সেৱাৰ পছন্দ আৰু মূল্য", "সঠিক বা ভুল উত্তৰ নাই। আপোনাৰ প্ৰকৃত পছন্দ জনাওক।"], "interview": ["আপোনাৰ অভিজ্ঞতা আৰু মতামত", "কেইটামান প্ৰশ্নই আপোনাৰ বাস্তৱ অভিজ্ঞতা বুজিবলৈ সহায় কৰিব।"], "stakeholder": ["FPO আৰু কৃষি অংশীদাৰৰ সাক্ষাৎকাৰ", "আপোনাৰ সংস্থাই কৃষকসকলক কেনেদৰে সহায় কৰে জনাওক।"]};
-const allSections = (type)=> type==='stakeholder' ? [{id:'stakeholder',en:'FPO & stakeholder interview',hi:'FPO और कृषि हितधारक',descEn:'Tell us about the farmers and services your organisation supports.',descHi:'अपने संगठन और किसानों के बारे में जानकारी दें।',questions:stakeholderQuestions}] : sections;
+const API=(import.meta.env.VITE_API_URL||'').replace(/\/$/,'');
+const emptyDraft=()=>({});
+const getName=(type,a)=>type==='farmer'?String(a.name||'').trim():String(a.contact_person||a.fpo_name||'').trim();
+const mobileDigits=v=>String(v||'').replace(/\D/g,'').replace(/^91(?=\d{10}$)/,'');
+const getFieldLabel=(q,lang)=>q[lang]||q.hi;
+const getOptionValue=o=>o.en;
+const getOptionLabel=(o,lang)=>o[lang]||o.hi;
+
 function App(){
  const [lang,setLang]=useState('hi');
- const [showLanguage,setShowLanguage]=useState(true);
+ const [languageChosen,setLanguageChosen]=useState(false);
  const [type,setType]=useState('farmer');
- const [step,setStep]=useState(0);
- const [answers,setAnswers]=useState({});
+ const [answers,setAnswers]=useState(emptyDraft);
  const [consent,setConsent]=useState(false);
- const [status,setStatus]=useState('idle');
+ const [busy,setBusy]=useState(false);
  const [receipt,setReceipt]=useState(null);
  const [error,setError]=useState('');
- const [draftKey,setDraftKey]=useState(()=>{
-  const storageKey='khushhal-kisan-draft-key';
-  let key=localStorage.getItem(storageKey);
-  if(!key){key=crypto.randomUUID();localStorage.setItem(storageKey,key);}
-  return key;
- });
- const [draftReady,setDraftReady]=useState(false);
- const saveQueue=useRef(Promise.resolve());
- const apiBase=(import.meta.env.VITE_API_URL||'http://localhost:5000').replace(/\/$/,'');
- const activeSections=useMemo(()=>allSections(type),[type]);
- const section=activeSections[Math.min(step,activeSections.length-1)];
- const total=activeSections.length;
- const progress=Math.round(((step+1)/total)*100);
- const tr=(q)=>lang==='as'?(assameseQuestions[q.id]||q.en):(lang==='en'?q.en:q.hi);
- const sectionTitle=(s)=>lang==='as'?(assameseSections[s.id]?.[0]||s.en):(lang==='en'?s.en:s.hi);
- const sectionDesc=(s)=>lang==='as'?(assameseSections[s.id]?.[1]||s.descEn):(lang==='en'?s.descEn:s.descHi);
- const optionLabel=(en,hi)=>lang==='as'?(assameseOptions[en]||en):(lang==='en'?en:hi);
- const ui=(en,hi,as)=>lang==='en'?en:(lang==='as'?(as||en):hi);
- const placeholderFor=(q)=>{
-  if(lang==='en') return q.placeholder||'';
-  if(q.id==='name') return ui('Your name','अपना नाम लिखें','আপোনাৰ নাম লিখক');
-  if(q.id==='mobile') return ui('10-digit mobile number','10 अंकों का मोबाइल नंबर','১০ অংকৰ ম’বাইল নম্বৰ');
-  if(q.id==='email') return 'name@example.com';
-  if(q.id==='crops') return ui('e.g. wheat, paddy, potato','जैसे गेहूँ, धान, आलू','যেনে ঘেঁহু, ধান, আলু');
-  return q.type==='textarea'
-   ? ui('Write your answer…','अपना जवाब लिखें…','আপোনাৰ উত্তৰ লিখক…')
-   : ui('Enter your answer…','अपना जवाब लिखें…','আপোনাৰ উত্তৰ লিখক…');
+ const [notice,setNotice]=useState('');
+ const [draftKey,setDraftKey]=useState(()=>crypto.randomUUID());
+ const [draftRestored,setDraftRestored]=useState(false);
+ const [activeSection,setActiveSection]=useState('profile');
+ const [saveState,setSaveState]=useState('waiting');
+ const saveTimer=useRef(null);
+ const lastLookup=useRef('');
+ const isRestoring=useRef(false);
+ const t=TEXT[lang];
+ const sections=QUESTIONNAIRES[type];
+ const allQuestions=useMemo(()=>sections.flatMap(s=>s.questions),[sections]);
+
+ useEffect(()=>{document.documentElement.lang=lang;},[lang]);
+ useEffect(()=>{setActiveSection(sections[0]?.id||'');},[type]);
+ useEffect(()=>{
+   if(typeof IntersectionObserver==='undefined')return;
+   const nodes=sections.map(section=>document.getElementById(`section-${section.id}`)).filter(Boolean);
+   if(!nodes.length)return;
+   const observer=new IntersectionObserver(entries=>{
+     const visible=entries.filter(entry=>entry.isIntersecting).sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top);
+     if(visible[0])setActiveSection(visible[0].target.dataset.sectionId||'');
+   },{rootMargin:'-105px 0px -62% 0px',threshold:0});
+   nodes.forEach(node=>observer.observe(node));
+   return()=>observer.disconnect();
+ },[type,languageChosen,receipt]);
+ const update=(id,value)=>setAnswers(prev=>({...prev,[id]:value}));
+ const isVisible=q=>{
+   if(!q.showWhen)return true;
+   const current=answers[q.showWhen.field];
+   if(q.showWhen.equals!==undefined)return current===q.showWhen.equals || current===q.showWhen.equalsEn;
+   if(q.showWhen.in)return q.showWhen.in.includes(current);
+   return true;
  };
- const setAnswer=(id,value)=>setAnswers(a=>({...a,[id]:value}));
- const visibleQuestions=section.questions;
+ const setTypeSafe=next=>{
+   if(next===type)return;
+   setType(next);setAnswers({});setConsent(false);setReceipt(null);setError('');setNotice('');setDraftKey(crypto.randomUUID());setDraftRestored(false);setSaveState('waiting');lastLookup.current='';
+ };
 
+ // Restore a pending draft only after matching name + mobile are entered.
  useEffect(()=>{
-  document.documentElement.lang=lang;
- },[lang]);
+   const name=getName(type,answers),mobile=mobileDigits(answers.mobile);
+   if(!name||!/^([6-9]\d{9})$/.test(mobile)){setSaveState('waiting');return;}
+   const identity=`${type}|${name.toLocaleLowerCase()}|${mobile}`;
+   if(lastLookup.current===identity)return;
+   const timer=setTimeout(async()=>{
+     lastLookup.current=identity;
+     try{
+       // Restore same-browser progress only when both entered identity fields match.
+       try{
+         const local=JSON.parse(localStorage.getItem(`kk-new-local-${type}`)||'null');
+         const localName=getName(type,local?.answers||{}).toLocaleLowerCase();
+         const localMobile=mobileDigits(local?.answers?.mobile);
+         if(local?.surveyType===type&&localName===name.toLocaleLowerCase()&&localMobile===mobile){
+           isRestoring.current=true;
+           setDraftKey(local.draftKey||crypto.randomUUID());
+           setAnswers(prev=>({...local.answers,...prev,name:prev.name||local.answers?.name,contact_person:prev.contact_person||local.answers?.contact_person,mobile:prev.mobile||local.answers?.mobile}));
+           setLang(local.language||lang);setDraftRestored(true);setActiveSection(sections[local.currentStep]?.id||sections[0]?.id||'');setSaveState('saved');
+           setNotice(lang==='en'?'Your saved draft has been restored.':lang==='as'?'আপোনাৰ সংৰক্ষিত খচৰা পুনৰুদ্ধাৰ কৰা হৈছে।':'आपका सेव किया हुआ अधूरा सर्वे वापस मिल गया है।');
+           setTimeout(()=>{isRestoring.current=false;},0);
+         }
+       }catch{}
+       const r=await fetch(`${API}/api/surveys/draft/lookup`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,mobile,surveyType:type,surveyVersion:'new'})});
+       if(!r.ok)return;
+       const data=await r.json();
+       if(data.draft?.draft_key){
+         isRestoring.current=true;
+         setDraftKey(data.draft.draft_key);
+         setAnswers(prev=>({...data.draft.answers,...prev,name:prev.name||data.draft.answers?.name,contact_person:prev.contact_person||data.draft.answers?.contact_person,mobile:prev.mobile||data.draft.answers?.mobile}));
+         setLang(data.draft.language||lang);setDraftRestored(true);setActiveSection(sections[data.draft.current_step]?.id||sections[0]?.id||'');setSaveState('saved');setNotice(lang==='en'?'Your saved draft has been restored.':lang==='as'?'আপোনাৰ সংৰক্ষিত খচৰা পুনৰুদ্ধাৰ কৰা হৈছে।':'आपका सेव किया हुआ अधूरा सर्वे वापस मिल गया है।');
+         setTimeout(()=>{isRestoring.current=false;},0);
+       }
+     }catch(e){console.warn('Draft lookup unavailable',e);}
+   },650);
+   return()=>clearTimeout(timer);
+ },[type,answers.name,answers.contact_person,answers.mobile]);
 
- // Restore this browser's unfinished survey from the API.
+ // Browser + server autosave. Server stores pending only when contact name and mobile exist.
  useEffect(()=>{
-  let cancelled=false;
-  setDraftReady(false);
-  (async()=>{
+   if(!languageChosen||receipt||isRestoring.current)return;
+   const snapshot={draftKey,surveyType:type,surveyVersion:'new',language:lang,answers,currentStep:Math.max(0,sections.findIndex(section=>section.id===activeSection))};
+   try{localStorage.setItem(`kk-new-local-${type}`,JSON.stringify(snapshot));}catch{}
+   const name=getName(type,answers),mobile=mobileDigits(answers.mobile);
+   if(!name||!/^([6-9]\d{9})$/.test(mobile)){setSaveState('waiting');return;}
+   clearTimeout(saveTimer.current);
+   saveTimer.current=setTimeout(async()=>{
+     try{
+       setSaveState('saving');
+       const response=await fetch(`${API}/api/surveys/draft`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(snapshot)});
+       if(!response.ok)throw new Error(`Draft save failed (${response.status})`);
+       const result=await response.json();
+       if(result.saved===false){setSaveState('waiting');return;}
+       try{localStorage.setItem(`kk-new-local-${type}`,JSON.stringify(snapshot));}catch{}
+       setSaveState('saved');
+     }catch(e){console.warn('Draft autosave failed',e);setSaveState('error');}
+   },900);
+   return()=>clearTimeout(saveTimer.current);
+ },[answers,lang,type,draftKey,languageChosen,receipt,activeSection]);
+
+ const goToSection=id=>{
+   setActiveSection(id);
+   document.getElementById(`section-${id}`)?.scrollIntoView({behavior:'smooth',block:'start'});
+ };
+ const activeSectionIndex=Math.max(0,sections.findIndex(section=>section.id===activeSection));
+ const saveMessage=saveState==='saving'?t.saving:saveState==='saved'?t.saved:saveState==='error'?t.saveError:t.draftNeedContact;
+
+ const chooseFile=async(q,file)=>{
+   if(!file)return;
+   if(!file.type.startsWith('image/')){setError(lang==='en'?'Please choose an image file.':lang==='as'?'অনুগ্ৰহ কৰি এখন ছবি বাছনি কৰক।':'कृपया फोटो वाली इमेज फाइल चुनें।');return;}
    try{
-    const response=await fetch(`${apiBase}/api/surveys/draft/${encodeURIComponent(draftKey)}`);
-    if(!response.ok) throw new Error('Draft could not be loaded');
-    const data=await response.json();
-    if(cancelled) return;
-    if(data.draft){
-     const saved=data.draft;
-     setType(saved.survey_type==='stakeholder'?'stakeholder':'farmer');
-     // Keep the language selected on the opening screen.
-     setAnswers(saved.answers&&typeof saved.answers==='object'?saved.answers:{});
-     const count=saved.survey_type==='stakeholder'?1:sections.length;
-     setStep(Math.max(0,Math.min(Number(saved.current_step)||0,count-1)));
-    }
-   }catch(err){
-    if(!cancelled) console.warn('Draft restore unavailable:',err.message);
-   }finally{
-    if(!cancelled) setDraftReady(true);
-   }
-  })();
-  return ()=>{cancelled=true;};
- },[draftKey,apiBase]);
+     const dataUrl=await new Promise((resolve,reject)=>{
+       const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);
+     });
+     const image=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=reject;img.src=dataUrl;});
+     const scale=Math.min(1,1500/Math.max(image.width,image.height));
+     const canvas=document.createElement('canvas');canvas.width=Math.round(image.width*scale);canvas.height=Math.round(image.height*scale);
+     canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
+     const compressed=canvas.toDataURL('image/jpeg',0.78);
+     if(compressed.length>2_500_000){setError(lang==='en'?'Image is too large. Please choose a smaller photo.':lang==='as'?'ছবিখন বহুত ডাঙৰ। সৰু ফটো বাছনি কৰক।':'फोटो बहुत बड़ा है। कृपया छोटी फोटो चुनें।');return;}
+     update(q.id,{fileName:file.name,dataUrl:compressed,mime:'image/jpeg'});setError('');
+   }catch(e){setError(lang==='en'?'Could not read this image.':lang==='as'?'ছবিখন পঢ়িব পৰা নগ’ল।':'फोटो पढ़ी नहीं जा सकी।');}
+ };
 
- // Debounced autosave. Requests are serialized so older answers cannot overwrite newer ones.
- useEffect(()=>{
-  if(!draftReady||status==='success') return;
-  const snapshot={draftKey,surveyType:type,language:lang,answers,currentStep:step};
-  const timer=setTimeout(()=>{
-   saveQueue.current=saveQueue.current.catch(()=>{}).then(async()=>{
-    const response=await fetch(`${apiBase}/api/surveys/draft`,{
-     method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(snapshot)
-    });
-    if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(data.error||'Draft save failed');}
-   }).catch(err=>console.warn('Automatic draft save failed:',err.message));
-  },700);
-  return ()=>clearTimeout(timer);
- },[draftReady,draftKey,type,lang,answers,step,status,apiBase]);
+ const validate=()=>{
+   for(const q of allQuestions){
+     if(!isVisible(q))continue;
+     const v=answers[q.id];
+     if(q.required && (v===undefined||v===null||v===''||(Array.isArray(v)&&!v.length))){setError(`${getFieldLabel(q,lang)} — ${t.required}`);document.getElementById(q.id)?.scrollIntoView({behavior:'smooth',block:'center'});return false;}
+     if(q.id==='mobile'&&v&& !/^[6-9]\d{9}$/.test(mobileDigits(v))){setError(t.phone);document.getElementById(q.id)?.scrollIntoView({behavior:'smooth',block:'center'});return false;}
+     if(q.max&&Array.isArray(v)&&v.length>q.max){setError(t.max3);document.getElementById(q.id)?.scrollIntoView({behavior:'smooth',block:'center'});return false;}
+     const isOtherChoice=x=>x==='Other'||String(x||'').toLowerCase().startsWith('other ');
+     const otherSelected=q.otherText&&(isOtherChoice(v)||(Array.isArray(v)&&v.some(isOtherChoice)));
+     if(otherSelected&&!String(answers[`${q.id}_other`]||'').trim()){setError(`${q.otherLabel?.[lang]||t.other} — ${t.required}`);document.getElementById(q.id)?.scrollIntoView({behavior:'smooth',block:'center'});return false;}
+     if(q.subFields?.some(sf=>sf.required&&!String(answers[sf.id]||'').trim())){setError(`${getFieldLabel(q,lang)} — ${t.required}`);document.getElementById(q.id)?.scrollIntoView({behavior:'smooth',block:'center'});return false;}
+     if(q.type==='email'&&v&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){setError(lang==='en'?'Enter a valid email address.':lang==='as'?'সঠিক ইমেইল ঠিকনা দিয়ক।':'सही ईमेल पता दर्ज करें।');return false;}
+   }
+   if(!consent){setError(t.consentError);return false;}
+   return true;
+ };
+ const submit=async()=>{
+   setError('');if(!validate())return;
+   setBusy(true);
+   try{
+     const cleanAnswers={...answers};
+     for(const q of allQuestions){
+       if(!isVisible(q)){
+         delete cleanAnswers[q.id];
+         delete cleanAnswers[`${q.id}_other`];
+         q.subFields?.forEach(sf=>delete cleanAnswers[sf.id]);
+       }
+     }
+     const payload={draftKey,language:lang,surveyType:type,surveyVersion:'new',answers:cleanAnswers,consent:true};
+     const r=await fetch(`${API}/api/surveys`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+     const data=await r.json().catch(()=>({}));
+     if(!r.ok)throw new Error(data.error||data.message||t.error);
+     setReceipt(data);setNotice('');
+     localStorage.removeItem(`kk-new-local-${type}`);
+   }catch(e){console.warn('Survey submission failed',e);setError(t.error);}finally{setBusy(false);}
+ };
+ const optionToggle=(q,value)=>{
+   const old=Array.isArray(answers[q.id])?answers[q.id]:[];
+   if(old.includes(value))update(q.id,old.filter(x=>x!==value));
+   else if(!q.max||old.length<q.max)update(q.id,[...old,value]);
+   else setError(t.max3);
+ };
+ const renderQuestion=q=>{
+   if(!isVisible(q))return null;
+   const value=answers[q.id];
+   const inputId=q.id;
+   const label=getFieldLabel(q,lang);
+   const opts=q.options||[];
+   const isOtherChoice=x=>x==='Other'||String(x||'').toLowerCase().startsWith('other ');
+   const showOther=q.otherText&&((Array.isArray(value)&&value.some(isOtherChoice))||isOtherChoice(value));
+   const otherLabel=q.otherLabel?.[lang]||q.otherLabel?.hi||t.other;
+   const field=<>
+    {q.type==='text'||q.type==='number'||q.type==='tel'||q.type==='email'?<input id={inputId} type={q.type==='text'?'text':q.type} min={q.id==='age'?1:undefined} max={q.id==='age'?120:undefined} step={q.id==='age'?1:undefined} value={value||''} onChange={e=>{const next=e.target.value;if(q.id==='age'&&next!==''&&(!Number.isInteger(Number(next))||Number(next)<1||Number(next)>120)){setError(lang==='en'?'Age must be a whole number between 1 and 120.':lang==='as'?'???? ?? ??? ???? ????? ????? ?????? ??? ??????':'??? 1 ?? 120 ?? ??? ???? ?????? ???? ??????');return;}if(q.id==='age')setError('');update(q.id,next);}} placeholder={q.placeholder?.[lang]||q.placeholder?.hi||''} inputMode={q.type==='tel'||q.id==='age'?'numeric':undefined}/>:null}
+    {q.type==='textarea'?<textarea id={inputId} rows="3" value={value||''} onChange={e=>update(q.id,e.target.value)} placeholder={lang==='en'?'Write your answer…':lang==='as'?'আপোনাৰ উত্তৰ লিখক…':'अपना उत्तर लिखें…'}/>:null}
+    {q.type==='radio'?<div className="option-list">{opts.map((o,i)=><label className={`option ${value===getOptionValue(o)?'selected':''}`} key={i}><input type="radio" name={q.id} value={getOptionValue(o)} checked={value===getOptionValue(o)} onChange={()=>update(q.id,getOptionValue(o))}/><span>{getOptionLabel(o,lang)}</span></label>)}</div>:null}
+    {q.type==='rating'?<div className="rating-options">{opts.map((o,i)=><label className={`rating-choice ${value===getOptionValue(o)?'selected':''}`} key={i} title={`${i+1}: ${getOptionLabel(o,lang)}`}><input type="radio" name={q.id} value={getOptionValue(o)} checked={value===getOptionValue(o)} onChange={()=>update(q.id,getOptionValue(o))}/><span aria-hidden="true">{'★'.repeat(i+1)}</span><small>{i+1}</small></label>)}</div>:null}
+    {q.type==='checks'?<div className="option-list checks">{opts.map((o,i)=><label className={`option ${Array.isArray(value)&&value.includes(getOptionValue(o))?'selected':''}`} key={i}><input type="checkbox" checked={Array.isArray(value)&&value.includes(getOptionValue(o))} onChange={()=>optionToggle(q,getOptionValue(o))}/><span>{getOptionLabel(o,lang)}</span></label>)}</div>:null}
+    {q.type==='file'?<div className="upload-box"><label className="upload-button" htmlFor={`${q.id}-file`}><UploadCloud size={18}/>{t.upload}<input id={`${q.id}-file`} type="file" accept="image/*" onChange={e=>chooseFile(q,e.target.files?.[0])}/></label>{value?.dataUrl&&<div className="upload-preview"><img src={value.dataUrl} alt="Uploaded survey attachment"/><span>{value.fileName||t.uploaded}</span><button type="button" className="text-button" onClick={()=>update(q.id,null)}>{lang==='en'?'Remove':lang==='as'?'আঁতৰাওক':'हटाएँ'}</button></div>}</div>:null}
+   </>;
+   const subFields=q.subFields?.map(sf=><div className="sub-field" key={sf.id}><label htmlFor={sf.id}>{sf.label[lang]||sf.label.hi}{sf.required&&<b className="required-mark"> *</b>}</label><input id={sf.id} type="text" value={answers[sf.id]||''} onChange={e=>update(sf.id,e.target.value)} /></div>);
+   const attachment=q.attachedFile&&(!q.attachedFile.showWhen||isVisible({showWhen:q.attachedFile.showWhen}))?q.attachedFile:null;
+   const attachmentValue=attachment?answers[attachment.id]:null;
+   const attachmentControl=attachment?<div className="attached-upload"><label className="attached-upload-label" htmlFor={`${attachment.id}-file`}>{attachment.label?.[lang]||attachment.label?.hi}<span className="optional-tag">{t.optional}</span></label><label className="upload-button" htmlFor={`${attachment.id}-file`}><UploadCloud size={18}/>{t.upload}<input id={`${attachment.id}-file`} type="file" accept="image/*" onChange={e=>chooseFile({id:attachment.id},e.target.files?.[0])}/></label>{attachmentValue?.dataUrl&&<div className="upload-preview"><img src={attachmentValue.dataUrl} alt="Uploaded survey attachment"/><span>{attachmentValue.fileName||t.uploaded}</span><button type="button" className="text-button" onClick={()=>update(attachment.id,null)}>{lang==='en'?'Remove':lang==='as'?'আঁতৰাওক':'हटाएँ'}</button></div>}</div>:null;
+   const groupedChildren=q.groupChildren?.map(childId=>allQuestions.find(item=>item.id===childId)).filter(Boolean).map(child=>renderQuestion(child)).filter(Boolean);
+   return <article className={`question-card ${q.type==='group'?'question-group-card':''} ${q.type==='rating'?'rating-question-card':''}`} id={inputId} key={q.id}><div className="question-heading">{q.number&&<span className="question-number">{q.number}</span>}<label>{label}{q.required&&<b className="required-mark"> *</b>}</label>{q.type==='file'&&<span className="optional-tag">{t.optional}</span>}</div>{q.hint&&<p className="question-hint">{q.hint[lang]||q.hint.hi}</p>}{q.subFieldsBefore&&subFields}{field}{!q.subFieldsBefore&&subFields}{showOther&&<div className="sub-field"><label>{otherLabel}</label><input type="text" value={answers[`${q.id}_other`]||''} onChange={e=>update(`${q.id}_other`,e.target.value)}/></div>}{groupedChildren?.length>0&&<div className="question-followups">{groupedChildren}</div>}{attachmentControl}</article>;
+ };
 
- function validate(){
-  for(const q of visibleQuestions){
-   if(q.required && !(Array.isArray(answers[q.id])?answers[q.id].length:answers[q.id]?.toString().trim())){
-    setError(ui(`Please answer: ${q.en}`,`कृपया जवाब दें: ${q.hi}`,`অনুগ্ৰহ কৰি উত্তৰ দিয়ক: ${assameseQuestions[q.id]||q.en}`));
-    document.getElementById(q.id)?.scrollIntoView({behavior:'smooth',block:'center'});
-    return false;
-   }
-   if(q.id==='email' && answers.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers.email.trim())){
-    setError(ui('Please enter a valid email address or leave it blank.','कृपया सही ईमेल पता दर्ज करें या खाली छोड़ दें।','অনুগ্ৰহ কৰি সঠিক ইমেইল ঠিকনা দিয়ক অথবা খালী ৰাখক।'));
-    document.getElementById('email')?.scrollIntoView({behavior:'smooth',block:'center'});
-    return false;
-   }
-   if(q.id==='mobile'){
-    const digits=(answers.mobile||'').replace(/[^0-9]/g,'');
-    if(!(digits.length===10 || (digits.length===12 && digits.startsWith('91')))){
-     setError(ui('Please enter a valid Indian mobile number.','कृपया सही मोबाइल नंबर दर्ज करें।','অনুগ্ৰহ কৰি সঠিক ভাৰতীয় ম’বাইল নম্বৰ দিয়ক।'));
-     document.getElementById('mobile')?.scrollIntoView({behavior:'smooth',block:'center'});
-     return false;
-    }
-   }
-   if(q.max && (answers[q.id]||[]).length>q.max){
-    setError(ui(`Please select no more than ${q.max}.`,`कृपया अधिकतम ${q.max} विकल्प चुनें।`,`অনুগ্ৰহ কৰি সৰ্বাধিক ${q.max}টা বিকল্প বাছনি কৰক।`));
-    return false;
-   }
-  }
-  setError('');
-  return true;
- }
+ if(receipt)return <div className="success-page"><div className="success-card"><div className="success-icon"><CheckCircle2 size={42}/></div><div className="eyebrow">KHUSHHAL KISAN · SURVEY</div><h1>{t.thank}</h1><p>{t.thankText}</p><div className="receipt-id"><small>{t.id}</small><strong>{receipt.responseId||receipt.response_id||'AKK'}</strong></div><button className="primary-button" onClick={()=>{setReceipt(null);setAnswers({});setConsent(false);setDraftKey(crypto.randomUUID());setActiveSection(sections[0]?.id||'');setSaveState('waiting');}}>{t.home}<ArrowRight size={17}/></button></div></div>;
+ if(!languageChosen)return <div className="language-screen"><div className="language-card"><div className="language-logo"><Sprout size={30}/></div><div className="eyebrow">KHUSHHAL KISAN</div><h1>{t.choose}</h1><p>{lang==='en'?'Select your preferred language to continue.':lang==='as'?'আগবাঢ়িবলৈ আপোনাৰ পছন্দৰ ভাষা বাছনি কৰক।':'आगे बढ़ने के लिए अपनी पसंद की भाषा चुनें।'}</p><div className="language-options">{LANGS.map(l=><button key={l.id} className={`language-option ${lang===l.id?'active':''}`} onClick={()=>setLang(l.id)}><span>{l.label}</span><span>{l.native}</span></button>)}</div><button className="primary-button full" onClick={()=>setLanguageChosen(true)}>{lang==='en'?'Continue':lang==='as'?'আগবাঢ়ক':'आगे बढ़ें'}<ArrowRight size={17}/></button></div></div>;
 
- async function submit(){
-  if(!validate()) return;
-  if(!consent){setError(ui('Please confirm your consent to submit.','जमा करने से पहले कृपया सहमति दें।','জমা দিয়াৰ আগতে আপোনাৰ সন্মতি নিশ্চিত কৰক।'));return;}
-  setStatus('loading');setError('');
-  try{
-   // Flush any queued draft save before final submission.
-   await saveQueue.current.catch(()=>{});
-   const r=await fetch(`${apiBase}/api/surveys`,{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({draftKey,language:lang,surveyType:type,answers,consent:true})
-   });
-   const data=await r.json();
-   if(!r.ok) throw new Error(data.error||'Could not submit survey');
-   localStorage.removeItem('khushhal-kisan-draft-key');
-   setReceipt(data);setStatus('success');
-  }catch(e){
-   setError((lang==='en'?'Submission failed: ':lang==='as'?'জমা দিব পৰা নগ’ল: ':'जमा नहीं हो पाया: ')+e.message+(lang==='en'?' Please check your internet and try again.':lang==='as'?' ইণ্টাৰনেট পৰীক্ষা কৰি পুনৰ চেষ্টা কৰক।':' इंटरनेट जाँचकर दोबारा प्रयास करें।'));
-   setStatus('idle');
-  }
- }
- if(status==='success'&&receipt)return <div className="success-page"><div className="success-card"><div className="success-icon"><CheckCircle2 size={42}/></div><div className="eyebrow">KHUSHHAL KISAN · SURVEY</div><h1>{ui('Thank you for sharing!','अपना अनुभव साझा करने के लिए धन्यवाद!','আপোনাৰ মতামত জনোৱাৰ বাবে ধন্যবাদ!')}</h1><p>{ui('Your response has been submitted successfully. Your feedback will help us design more useful farming support.','आपका जवाब सफलतापूर्वक जमा हो गया है। आपका फीडबैक बेहतर कृषि सहायता बनाने में मदद करेगा।','আপোনাৰ উত্তৰ সফলতাৰে জমা হৈছে। আপোনাৰ মতামতে অধিক উপযোগী কৃষি সহায় গঢ়াত সহায় কৰিব।')}</p><div className="receipt"><span>{ui('Your unique response ID','आपकी यूनिक रिस्पॉन्स ID','আপোনাৰ একক উত্তৰ ID')}</span><strong>{receipt.responseId}</strong><button className="copy-btn" onClick={()=>navigator.clipboard?.writeText(receipt.responseId)}>{ui('Copy ID','ID कॉपी करें','ID কপি কৰক')}</button></div><div className="privacy-note"><ShieldCheck size={18}/><span>{ui('Keep this ID for your records. Your answers are stored securely for survey analysis.','इस ID को अपने पास रखें। आपके जवाब सर्वे विश्लेषण के लिए सुरक्षित रूप से स्टोर किए जाते हैं।','এই ID আপোনাৰ ওচৰত ৰাখক। সমীক্ষাৰ বিশ্লেষণৰ বাবে আপোনাৰ উত্তৰসমূহ সুৰক্ষিতভাৱে সংৰক্ষণ কৰা হৈছে।')}</span></div><button className="primary full" onClick={()=>{const nextKey=crypto.randomUUID();localStorage.setItem('khushhal-kisan-draft-key',nextKey);setDraftKey(nextKey);setDraftReady(false);setAnswers({});setConsent(false);setStep(0);setReceipt(null);setStatus('idle');setType('farmer');setLang('hi');window.scrollTo(0,0)}}>{ui('Submit another response','एक और जवाब जमा करें','আন এটা উত্তৰ জমা দিয়ক')} <ArrowRight size={18}/></button></div></div>;
- if(showLanguage)return <div className="language-screen"><div className="language-card"><div className="language-logo"><Sprout size={30}/></div><div className="eyebrow">KHUSHHAL KISAN</div><h1>{ui('Choose your language','अपनी भाषा चुनें','আপোনাৰ ভাষা বাছনি কৰক')}</h1><p>{ui('Select a language to start the farmer survey.','सर्वे शुरू करने के लिए अपनी भाषा चुनें।','কৃষক সমীক্ষা আৰম্ভ কৰিবলৈ এটা ভাষা বাছনি কৰক।')}</p><div className="language-options"><button className={lang==='hi'?'active':''} onClick={()=>setLang('hi')}><span>🇮🇳</span><b>हिंदी</b><small>Hindi</small></button><button className={lang==='en'?'active':''} onClick={()=>setLang('en')}><span>🌐</span><b>English</b><small>English</small></button><button className={lang==='as'?'active':''} onClick={()=>setLang('as')}><span>🌾</span><b>অসমীয়া</b><small>Assamese</small></button></div><button className="primary full" onClick={()=>setShowLanguage(false)}>{ui('Continue','आगे बढ़ें','আগবাঢ়ক')} <ArrowRight size={18}/></button><small className="language-foot">{ui('You can change the language later.','आप बाद में भी भाषा बदल सकते हैं।','আপুনি পিছতো ভাষা সলনি কৰিব পাৰিব।')}</small></div></div>;
- return <div className="app-shell"><header className="topbar"><a className="brand" href="#top"><span className="brand-mark"><Sprout size={26}/></span><span><b>Khushhal Kisan</b><small>{ui('FARMER-FIRST AGRICULTURE','किसान-केंद्रित कृषि','কৃষক-কেন্দ্ৰিক কৃষি')}</small></span></a><div className="lang-switch" aria-label="Change language"><Languages size={17}/><select value={lang} onChange={e=>setLang(e.target.value)} aria-label="Select language"><option value="hi">हिंदी</option><option value="en">English</option><option value="as">অসমীয়া</option></select></div></header>
- <main id="top"><section className="hero"><div className="hero-copy"><div className="pill"><span className="pulse"/>{ui('FARMER NEEDS & MARKET VALIDATION','किसान की जरूरतें और बाजार सर्वे','কৃষকৰ প্ৰয়োজন আৰু বজাৰ সমীক্ষা')}</div><h1>{lang==='en'?<>Your experience.<br/><em>A better farming future.</em></>:lang==='as'?<>আপোনাৰ অভিজ্ঞতা।<br/><em>কৃষিৰ এক উন্নত ভৱিষ্যৎ।</em></>:<>आपका अनुभव।<br/><em>खेती का बेहतर भविष्य।</em></>}</h1><p>{ui('Help us understand the real challenges farmers face and shape practical, trustworthy services through Khushhal Kisan.','खेती की असली समस्याओं को समझने और Khushhal Kisan के जरिए उपयोगी व भरोसेमंद सेवाएँ बनाने में हमारी मदद करें।','কৃষকসকলে সন্মুখীন হোৱা প্ৰকৃত সমস্যাবোৰ বুজি Khushhal Kisan-ৰ জৰিয়তে ব্যৱহাৰিক আৰু বিশ্বাসযোগ্য সেৱা গঢ়ি তুলিবলৈ আমাক সহায় কৰক।')}</p><div className="hero-points"><span><ShieldCheck size={17}/>{ui('Your answers matter','आपकी राय महत्वपूर्ण है','আপোনাৰ মতামত গুৰুত্বপূৰ্ণ')}</span><span><ClipboardList size={17}/>{ui('About 5–8 minutes','लगभग 5–8 मिनट','প্ৰায় ৫–৮ মিনিট')}</span></div></div><div className="hero-art"><div className="sun"/><div className="hill hill-back"/><div className="hill hill-front"/><div className="field-lines"/><div className="plant plant-a"><Sprout size={80}/></div><div className="plant plant-b"><Sprout size={56}/></div><div className="art-label"><Leaf size={16}/>{ui('Built around farmers','किसानों के लिए','কৃষকৰ বাবে')}</div></div></section>
- <section className="survey-wrap"><aside className="sidebar"><div className="sidebar-title">{ui('YOUR SURVEY','आपका सर्वे','আপোনাৰ সমীক্ষা')}<span>{String(step+1).padStart(2,'0')} / {String(total).padStart(2,'0')}</span></div><div className="progress-track"><div style={{width:`${progress}%`}}/></div><div className="steps">{activeSections.map((s,i)=><button key={s.id} className={`step ${step===i?'active':''} ${step>i?'done':''}`} onClick={()=>{if(i<=step){setStep(i);setError('')}}}><span className="step-num">{step>i?<CheckCircle2 size={17}/>:String(i+1).padStart(2,'0')}</span><span><b>{sectionTitle(s)}</b><small>{i===step?(ui('IN PROGRESS','जारी है','চলি আছে')):step>i?(ui('Completed','पूरा हुआ','সম্পূৰ্ণ')):(ui('Section','सेक्शन','অংশ'))}</small></span></button>)}</div><div className="sidebar-help"><CircleHelp size={18}/><span>{ui('There are no right or wrong answers. Share what is true for you.','कोई सही या गलत जवाब नहीं। अपने अनुभव के अनुसार बताएं।','ইয়াত শুদ্ধ বা অশুদ্ধ উত্তৰ নাই। আপোনাৰ প্ৰকৃত অভিজ্ঞতা জনাওক।')}</span></div></aside>
- <section className="form-panel"><div className="form-heading"><div className="section-kicker">{lang==='en'?`SECTION ${String(step+1).padStart(2,'0')} OF ${String(total).padStart(2,'0')}`:lang==='as'?`অংশ ${step+1} / ${total}`:`सेक्शन ${step+1} / ${total}`}</div><h2>{sectionTitle(section)}</h2><p>{sectionDesc(section)}</p></div>{step===0&&<div className="type-select"><span>{ui('I am responding as','मैं जवाब दे रहा/रही हूँ','মই এই হিচাপে উত্তৰ দিছোঁ')}</span><div><button className={type==='farmer'?'selected':''} onClick={()=>{setType('farmer');setStep(0);setAnswers({})}}>{ui('Farmer','किसान','কৃষক')}</button><button className={type==='stakeholder'?'selected':''} onClick={()=>{setType('stakeholder');setStep(0);setAnswers({})}}>{ui('FPO / Agriculture stakeholder','FPO / कृषि हितधारक','FPO / কৃষি অংশীদাৰ')}</button></div></div>}
- <div className="questions">{visibleQuestions.map((q,index)=><div className="question" key={q.id} id={q.id}><label className="question-label" htmlFor={q.id}><span className="q-number">{String(index+1).padStart(2,'0')}</span><span>{tr(q)}{q.required&&<i className="required"> *</i>}</span></label>{q.type==='text'&&<input id={q.id} type={q.id==='mobile'?'tel':q.id==='email'?'email':'text'} inputMode={q.id==='mobile'?'numeric':undefined} maxLength={q.id==='mobile'?15: q.id==='email'?254:undefined} value={answers[q.id]||''} onChange={e=>setAnswer(q.id,e.target.value)} placeholder={placeholderFor(q)} />}{q.type==='textarea'&&<textarea id={q.id} rows="3" value={answers[q.id]||''} onChange={e=>setAnswer(q.id,e.target.value)} placeholder={placeholderFor(q)}/>}{q.type==='radio'&&<div className="option-grid">{q.options.map(([en,hi])=><label className={`option ${answers[q.id]===en?'chosen':''}`} key={en}><input type="radio" name={q.id} value={en} checked={answers[q.id]===en} onChange={()=>setAnswer(q.id,en)}/><span className="radio-dot"/><span>{optionLabel(en,hi)}</span></label>)}</div>}{q.type==='checks'&&<><div className="option-grid">{q.options.map(([en,hi])=>{const vals=answers[q.id]||[];return <label className={`option ${vals.includes(en)?'chosen':''}`} key={en}><input type="checkbox" checked={vals.includes(en)} onChange={e=>setAnswer(q.id,e.target.checked?(q.max&&vals.length>=q.max?vals:[...vals,en]):vals.filter(v=>v!==en))}/><span className="check-box">{vals.includes(en)?'✓':''}</span><span>{optionLabel(en,hi)}</span></label>})}</div>{q.max&&<small className="hint">{ui(`Choose up to ${q.max} (${(answers[q.id]||[]).length} selected)`,`अधिकतम ${q.max} चुनें (${(answers[q.id]||[]).length} चुने गए)`,`সৰ্বাধিক ${q.max}টা বাছনি কৰক (${(answers[q.id]||[]).length}টা বাছনি কৰা হৈছে)`)}</small>}</>}</div>)}</div>
- {step===total-1&&<label className="consent"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/><span>{ui('I voluntarily agree to share these answers with the Khushhal Kisan team for product research and survey analysis.','मैं उत्पाद शोध और सर्वे विश्लेषण के लिए ये जवाब Khushhal Kisan टीम के साथ साझा करने की स्वेच्छा से सहमति देता/देती हूँ।','মই এই উত্তৰসমূহ Khushhal Kisan দলৰ সৈতে গৱেষণা আৰু সমীক্ষাৰ বাবে ভাগ-বতৰা কৰিবলৈ স্বেচ্ছাই সন্মতি দিছোঁ।')}</span></label>}
- {error&&<div className="error-msg" role="alert">{error}</div>}<div className="form-footer"><div className="footer-note"><ShieldCheck size={16}/>{ui('Your progress is saved automatically.','आपकी जानकारी अपने आप सेव होती रहती है।','আপোনাৰ অগ্ৰগতি স্বয়ংক্ৰিয়ভাৱে সংৰক্ষিত হয়।')}</div><div className="nav-buttons">{step>0&&<button className="secondary" onClick={()=>{setStep(step-1);setError('')}}><ArrowLeft size={17}/>{ui('Back','वापस','উভতি যাওক')}</button>}{step<total-1?<button className="primary" onClick={()=>{if(validate()){setStep(step+1);setError('');document.querySelector('.form-panel')?.scrollIntoView({behavior:'smooth',block:'start'})}}}>{ui('Continue','आगे बढ़ें','আগবাঢ়ক')}<ArrowRight size={17}/></button>:<button className="primary" onClick={submit} disabled={status==='loading'}>{status==='loading'?<><LoaderCircle className="spin" size={18}/>{ui('Submitting…','जमा हो रहा है…','জমা হৈ আছে…')}</>:<>{ui('Submit survey','सर्वे जमा करें','সমীক্ষা জমা দিয়ক')}<ArrowRight size={17}/></>}</button>}</div></div></section></section>
- <footer><div className="footer-brand"><Sprout size={20}/><b>Khushhal Kisan</b></div><span>{ui('A farmer-first support platform · Uttar Pradesh, India','किसान-केंद्रित सहायता प्लेटफॉर्म · उत्तर प्रदेश, भारत','কৃষক-কেন্দ্ৰিক সহায়ক মঞ্চ · উত্তৰ প্ৰদেশ, ভাৰত')}</span><small>© {new Date().getFullYear()} AiVirinchi Private Limited</small></footer></main></div>
+ return <div className="app-shell"><header className="topbar"><a className="brand" href="#top"><span className="brand-mark"><Sprout size={25}/></span><span><b>Khushhal Kisan</b><small>{lang==='en'?'FARMER-FIRST AGRICULTURE':lang==='as'?'কৃষক-কেন্দ্ৰিক কৃষি':'किसान-केंद्रित कृषि'}</small></span></a><div className="header-actions"><div className="lang-select"><Languages size={17}/><select aria-label={t.change} value={lang} onChange={e=>setLang(e.target.value)}>{LANGS.map(l=><option value={l.id} key={l.id}>{l.label}</option>)}</select></div><button className="change-language" onClick={()=>setLanguageChosen(false)}>{t.change}</button></div></header>
+ <main id="top" className="survey-main"><section className="hero"><div className="hero-copy"><div className="pill"><span className="pulse"/>{lang==='en'?'FARMER NEEDS & MARKET VALIDATION':lang==='as'?'কৃষকৰ প্ৰয়োজন আৰু বজাৰ সমীক্ষা':'किसान की जरूरतें और बाजार सर्वे'}</div><h1>{lang==='en'?<>Your experience.<br/><em>A better farming future.</em></>:lang==='as'?<>আপোনাৰ অভিজ্ঞতা।<br/><em>উন্নত কৃষিৰ ভৱিষ্যৎ।</em></>:<>आपका अनुभव।<br/><em>बेहतर खेती का भविष्य।</em></>}</h1><p>{lang==='en'?'Your answers will help us understand real farming needs and build useful support services.':lang==='as'?'আপোনাৰ উত্তৰে বাস্তৱ কৃষি প্ৰয়োজন বুজিবলৈ আৰু উপযোগী সহায়ক সেৱা গঢ়িবলৈ সহায় কৰিব।':'आपके जवाब हमें किसानों की वास्तविक जरूरतें समझने और उपयोगी सहायता सेवाएँ बनाने में मदद करेंगे।'}</p></div><div className="hero-art"><div className="art-circle"><Leaf size={74}/></div><div className="art-caption">{lang==='en'?'Growing together':lang==='as'?'একেলগে আগবাঢ়োঁ':'मिलकर आगे बढ़ें'}</div></div></section>
+ <section className="survey-type-switch"><div><span className="switch-kicker">{lang==='en'?'SELECT SURVEY':lang==='as'?'সমীক্ষা বাছনি কৰক':'सर्वे चुनें'}</span><h2>{lang==='en'?'Who are you responding as?':lang==='as'?'আপুনি কাৰ হৈ উত্তৰ দিছে?':'आप किसकी ओर से जवाब दे रहे हैं?'}</h2></div><div className="type-buttons"><button className={type==='farmer'?'active':''} onClick={()=>setTypeSafe('farmer')}>{t.farmer}</button><button className={type==='stakeholder'?'active':''} onClick={()=>setTypeSafe('stakeholder')}>{t.fpo}</button></div></section>
+ {type==='stakeholder'&&<div className="fpo-note">{t.fpoIntro}</div>}
+ <p className="form-intro">{t.intro}</p>{notice&&<div className="notice-msg">{notice}</div>}
+ <div className="survey-layout">
+  <aside className="section-sidebar">
+   <div className="sidebar-progress">
+    <div className="sidebar-progress-label"><strong>{t.section} {activeSectionIndex+1} / {sections.length}</strong><span>{Math.round(((activeSectionIndex+1)/sections.length)*100)}%</span></div>
+    <div className="sidebar-progress-track"><span style={{width:`${((activeSectionIndex+1)/sections.length)*100}%`}}/></div>
+   </div>
+   <nav className="section-nav" aria-label={t.sectionNavigation}>
+    {sections.map((section,si)=><button type="button" key={section.id} className={`section-nav-item ${activeSection===section.id?'active':''}`} aria-current={activeSection===section.id?'step':undefined} onClick={()=>goToSection(section.id)}>
+      <span className="section-nav-number">{String(si+1).padStart(2,'0')}</span>
+      <span className="section-nav-title">{section.title[lang]||section.title.hi}</span>
+    </button>)}
+   </nav>
+  </aside>
+  <div className="survey-content">
+   <div className="survey-sections">{sections.map((section,si)=><section className="survey-section" id={`section-${section.id}`} data-section-id={section.id} key={section.id}>
+    <div className="section-heading"><div className="section-kicker">{t.section} {si+1}</div><h2>{section.title[lang]||section.title.hi}</h2>
+     {section.intro&&<div className={section.mainQuestionNumber?'section-main-question':'section-intro'}>{section.mainQuestionNumber&&<strong>{lang==='en'?'Question':lang==='as'?'প্ৰশ্ন':'प्रश्न'} {section.mainQuestionNumber}.</strong>}<p>{section.intro[lang]||section.intro.hi}</p></div>}
+    </div>
+    {section.id==='ai'&&<div className="rating-guide"><div className="rating-guide-title">{t.ratingGuide}</div><div className="rating-guide-grid">{RATING_GUIDE.map(item=><div className="rating-guide-item" key={item.value}><span className="rating-guide-stars">{item.stars}</span><b>{item.value}</b><small>{item[lang]||item.hi}</small></div>)}</div></div>}
+    <div className="question-grid">{section.questions.filter(item=>!section.questions.some(parent=>parent.groupChildren?.includes(item.id))).map(renderQuestion)}</div>
+   </section>)}</div>
+   <div className="submit-panel"><label className="consent-row"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/><span>{t.consent}</span></label>{error&&<div className="error-msg" role="alert">{error}</div>}<div className="submit-bottom"><div className="save-note"><ShieldCheck size={17}/><span>{saveMessage}</span></div><button className="primary-button submit-button" disabled={busy} onClick={submit}>{busy?<><LoaderCircle className="spin" size={18}/>{t.submitting}</>:<>{t.submit}<ArrowRight size={17}/></>}</button></div></div>
+  </div>
+ </div>
+ </main><footer className="site-footer"><div><Sprout size={19}/><b>Khushhal Kisan</b></div><span>{lang==='en'?'A farmer-first support platform · Uttar Pradesh, India':lang==='as'?'কৃষক-কেন্দ্ৰিক সহায়ক মঞ্চ · উত্তৰ প্ৰদেশ, ভাৰত':'किसान-केंद्रित सहायता प्लेटफॉर्म · उत्तर प्रदेश, भारत'}</span><small>© {new Date().getFullYear()} AIVIRINCHI</small></footer></div>;
 }
 
 createRoot(document.getElementById('root')).render(<App/>);

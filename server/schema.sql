@@ -30,6 +30,10 @@ ON survey_responses (survey_type);
 ALTER TABLE survey_responses
 ADD COLUMN IF NOT EXISTS draft_key VARCHAR(100);
 
+-- Legacy compatibility field retained from the previous release; current response IDs are not renumbered.
+ALTER TABLE survey_responses
+ADD COLUMN IF NOT EXISTS legacy_response_id VARCHAR(40);
+
 ALTER TABLE survey_responses
 ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'completed';
 
@@ -346,10 +350,24 @@ WHERE sr.farmer_id IS NULL
   AND f.farmer_id = 'HKF-LEGACY-' || SUBSTRING(MD5(sr.response_id), 1, 20);
 
 CREATE SEQUENCE IF NOT EXISTS public.survey_response_code_seq START WITH 6;
+CREATE SEQUENCE IF NOT EXISTS public.survey_pending_code_seq START WITH 1;
+
+
+
+
+
+
+
+-- Version separation for the redesigned questionnaire. Existing rows receive
+-- 'legacy' and are never rewritten; new API writes explicitly use 'new'.
+ALTER TABLE survey_responses
+ADD COLUMN IF NOT EXISTS survey_version VARCHAR(20) NOT NULL DEFAULT 'legacy';
+
+CREATE SEQUENCE IF NOT EXISTS public.survey_akk_code_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE IF NOT EXISTS public.survey_pending_new_code_seq START WITH 1 INCREMENT BY 1;
+
+CREATE INDEX IF NOT EXISTS idx_survey_responses_version_type_status
+ON survey_responses (survey_version, survey_type, status);
 
 COMMIT;
-
-
-
-
 
