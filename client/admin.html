@@ -1,194 +1,933 @@
-﻿@'
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Khushhal Kisan Admin</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Khushhal Kisan | Admin Panel</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f3f6f1;color:#203326;font-family:Arial,sans-serif}
-header{background:#174d32;color:white;padding:20px 6%}main{max-width:1000px;margin:35px auto;padding:0 16px}
-.card{background:white;padding:25px;border-radius:12px;margin-bottom:20px;box-shadow:0 3px 15px #0000000d}
-input{display:block;width:100%;padding:13px;margin:12px 0;border:1px solid #ccd7ce;border-radius:7px}
-button{padding:12px 18px;border:0;border-radius:7px;background:#17643b;color:white;cursor:pointer;margin:5px}
-.hidden{display:none}.stats{display:flex;gap:15px;flex-wrap:wrap}.stat{flex:1;min-width:140px;background:#edf5ee;padding:18px;border-radius:8px}
-.stat strong{display:block;font-size:27px;margin-top:8px}
-.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:12px;text-align:left;border-bottom:1px solid #ddd}
-#message{color:#a12b2b;margin-top:12px}
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#203326;background:#f3f6f1}*{box-sizing:border-box}body{margin:0}header{background:#174d32;color:#fff;padding:20px max(18px,calc((100% - 1180px)/2))}main{max-width:1240px;margin:28px auto;padding:0 18px}.card{background:#fff;border:1px solid #e7eee8;border-radius:16px;padding:24px;margin-bottom:18px;box-shadow:0 8px 28px #183b250b}.hidden{display:none!important}input{display:block;width:100%;max-width:420px;padding:13px;margin:12px 0;border:1px solid #ccd7ce;border-radius:8px}button{border:0;border-radius:9px;padding:11px 16px;background:#17643b;color:#fff;cursor:pointer;font-weight:650;margin:4px;transition:background .15s ease,transform .15s ease}button:hover{background:#124d2e}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #9ac9a8;outline-offset:2px}button.secondary{background:#e9f1eb;color:#174d32}button:disabled{opacity:.45;cursor:not-allowed}.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.stat{background:#edf5ee;padding:16px;border-radius:10px}.stat strong{display:block;font-size:26px;margin-top:7px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.tabs button.active{background:#174d32}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:12px;text-align:left;border-bottom:1px solid #e4e9e4;vertical-align:top}th{background:#f5f8f4;font-size:13px;letter-spacing:.02em;white-space:nowrap}.muted{color:#68766d;font-size:13px}#message,#status{margin-top:12px;color:#9a3328}.status-good{color:#17643b!important}.actions{white-space:nowrap}.modal{position:fixed;inset:0;background:#10201699;display:flex;align-items:center;justify-content:center;padding:16px;z-index:5}.modal-box{background:#fff;border-radius:14px;max-width:760px;width:100%;max-height:85vh;overflow:auto;padding:22px}.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.detail{padding:10px;background:#f5f8f4;border-radius:8px;overflow-wrap:anywhere}.detail b{display:block;font-size:12px;color:#68766d;margin-bottom:5px}.pager{margin-top:14px}@media(max-width:650px){.stats{grid-template-columns:1fr}.detail-grid{grid-template-columns:1fr}header{padding:18px}}
+.api-settings{margin:12px 0 18px;padding:14px;border:1px solid #dce8de;background:#f7faf7;border-radius:12px}.api-settings label{display:block;font-weight:700;font-size:13px}.api-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.api-row input{flex:1;min-width:220px;max-width:none;margin:8px 0}.api-settings small{display:block;color:#65756a}.api-settings #apiStatus{margin-top:5px}.api-settings #apiStatus.good{color:#17643b}.api-settings #apiStatus.bad{color:#a83228}@media(max-width:650px){.api-row button{flex:1}.api-row input{min-width:100%}}
 </style>
 </head>
 <body>
-<header><h2>&#x1F331; Khushhal Kisan | Admin Panel</h2></header>
+<header><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2> Khushhal Kisan | <span data-en="Admin Panel">Admin Panel</span></h2><select id="adminLanguage" aria-label="Admin language" style="padding:9px;border-radius:8px"><option value="hi">हिन्दी</option><option value="en">English</option><option value="as">অসমীয়া</option></select></div></header>
 <main>
 <section class="card" id="login">
-<h2>Admin Login</h2>
+<h2 data-en='Admin Login'>Admin Login</h2>
+<div class="api-settings">
+<label for="apiBaseUrl">API Server URL</label>
+<div class="api-row"><input id="apiBaseUrl" type="url" placeholder="https://your-api.onrender.com"><button type="button" class="secondary" id="saveApiUrl">Save API</button><button type="button" id="testApiUrl">Test Connection</button></div>
+<small id="apiStatus">Set the deployed API URL if the dashboard cannot fetch records.</small>
+</div>
 <form id="loginForm">
-<input id="username" placeholder="Admin Username" required>
-<input id="password" type="password" placeholder="Password" required>
-<button type="submit">Login</button>
-</form>
-<div id="message"></div>
+<input id="username" autocomplete="username" placeholder="Admin Username" required>
+<input id="password" type="password" autocomplete="current-password" placeholder="Password" required>
+<button type="submit" data-en="Login">Login</button>
+</form><div id="message"></div>
 </section>
+
 <section id="dashboard" class="hidden">
 <div class="card">
-<h2>Survey Dashboard</h2>
+<h2 data-en='Survey Dashboard'>Survey Dashboard</h2>
 <div class="stats">
-<div class="stat">Farmer Surveys<strong id="farmers">0</strong></div>
-<div class="stat">Stakeholder Surveys<strong id="stakeholders">0</strong></div>
-<div class="stat">Total Records<strong id="total">0</strong></div><div class="stat">Total Draft<strong id="drafts">0</strong></div><div class="stat">Total Submitted<strong id="submitted">0</strong></div>
+<div class="stat"><span data-en='Submitted Surveys'>Submitted Surveys</span><strong id="submitted">0</strong></div>
+<div class="stat"><span data-en='New Version Surveys'>New Version Surveys</span><strong id="newSubmitted">0</strong></div>
+<div class="stat"><span data-en='Historical Surveys'>Historical Surveys</span><strong id="oldSubmitted">0</strong></div>
+<div class="stat"><span data-en='Farmer Surveys'>Farmer Surveys</span><strong id="farmers">0</strong></div>
+<div class="stat"><span data-en='FPO Surveys'>FPO Surveys</span><strong id="stakeholders">0</strong></div>
+<div class="stat"><span data-en='Pending Farmer'>Pending Farmer</span><strong id="pendingFarmers">0</strong></div>
+<div class="stat"><span data-en='Pending FPO'>Pending FPO</span><strong id="pendingStakeholders">0</strong></div>
+<div class="stat"><span data-en='Total Pending'>Total Pending</span><strong id="enquiries">0</strong></div>
 </div>
-<button onclick="loadRecords()">Refresh</button>
-<button onclick="downloadExcel()">Download Excel</button>
-<button onclick="logout()">Logout</button>
+<div class="tabs">
+<button id="farmerTab" class="active" onclick="switchTab('farmer')" data-en='Farmer Surveys'>Farmer Surveys</button>
+<button id="stakeholderTab" class="secondary" onclick="switchTab('stakeholder')" data-en='FPO Surveys'>FPO Surveys</button>
+<button id="pendingFarmerTab" class="secondary" onclick="switchTab('pending_farmer')" data-en='Pending Farmer'>Pending Farmer</button>
+<button id="pendingStakeholderTab" class="secondary" onclick="switchTab('pending_stakeholder')" data-en='Pending FPO'>Pending FPO</button>
+</div>
+<button class="secondary" onclick="loadRecords()" data-en='Refresh'>Refresh</button>
+<button onclick="downloadExcel()" data-en='Download All 4 Sheets'>Download All 4 Sheets</button>
+<button class="secondary" onclick="downloadPendingExcel()" data-en='Download Pending Drafts'>Download Pending Drafts</button>
+<button class="secondary" onclick="logout()" data-en='Logout'>Logout</button>
 <p id="status"></p>
 </div>
+
 <div class="card">
-<h3>Recent Survey Records</h3>
+<h3 id="listTitle">Submitted Surveys</h3>
 <div class="table-wrap">
 <table>
-<thead><tr><th>Response ID</th><th>Name</th><th>Type</th><th>Status</th><th>Submitted</th></tr></thead>
+<thead id="tableHead"></thead>
 <tbody id="records"></tbody>
 </table>
 </div>
+<div id="recordPagination" class="pager"></div>
 </div>
 </section>
 </main>
+
+<div id="detailsModal" class="modal hidden" role="dialog" aria-modal="true">
+ <div class="modal-box">
+  <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+   <h3 id="modalTitle">Details</h3><button class="secondary" onclick="closeDetails()" data-en="Close">Close</button>
+  </div>
+  <div id="detailContent" class="detail-grid"></div>
+ </div>
+</div>
+
 <script>
-const API='https://khushhal-kisan-api.onrender.com';
-let token='';
-let currentOffset=0;
+let API=(localStorage.getItem('kk_admin_api_url')||window.KK_API_URL||(location.hostname==='localhost'||location.hostname==='127.0.0.1'?'http://localhost:5000':'https://khushhal-kisan-api.onrender.com')).replace(/\/$/,'');
+let token=sessionStorage.getItem('kk_admin_token')||'';
+let currentTab='farmer',currentOffset=0,uiLang=localStorage.getItem('kk_admin_language')||'hi';
 const pageSize=50;
 const $=id=>document.getElementById(id);
-
-function safe(value){
- const td=document.createElement('td');
- td.textContent=value??'';
- return td;
+$('apiBaseUrl').value=API;
+const apiStatus=(message,ok)=>{$('apiStatus').textContent=message;$('apiStatus').className=ok?'good':'bad';};
+$('saveApiUrl').addEventListener('click',()=>{
+ const value=$('apiBaseUrl').value.trim().replace(/\/$/,'');
+ if(!/^https?:\/\//i.test(value)){apiStatus('Enter a valid URL beginning with https:// or http://',false);return;}
+ API=value;localStorage.setItem('kk_admin_api_url',API);apiStatus('API URL saved. You can now log in or refresh records.',true);
+});
+$('testApiUrl').addEventListener('click',async()=>{
+ const value=$('apiBaseUrl').value.trim().replace(/\/$/,'');
+ if(!/^https?:\/\//i.test(value)){apiStatus('Enter a valid API URL first.',false);return;}
+ apiStatus('Testing API and database connection�',true);
+ try{const response=await fetch(value+'/api/health');const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||data.database||'API health check failed');apiStatus('Connected successfully. Database: '+(data.database||'connected'),true);}
+ catch(error){apiStatus('Connection failed: '+error.message+' � check API URL, server status and CLIENT_ORIGIN.',false);}
+});
+const translations={
+  "Admin Panel": [
+    "??????? ????",
+    "????? ???????"
+  ],
+  "Admin Login": [
+    "????? ?????",
+    "????? ????"
+  ],
+  "Survey Dashboard": [
+    "????? ????????",
+    "??????? ????????"
+  ],
+  "Submitted Surveys": [
+    "??? ??? ?? ?????",
+    "??? ????? ???????"
+  ],
+  "Farmer Surveys": [
+    "????? ?????",
+    "???? ???????"
+  ],
+  "FPO Surveys": [
+    "FPO ?????",
+    "FPO ???????"
+  ],
+  "Pending Farmer": [
+    "????? ????? ?????",
+    "???? ???? ???????"
+  ],
+  "Pending FPO": [
+    "????? FPO ?????",
+    "???? FPO ???????"
+  ],
+  "Total Pending": [
+    "??? ????? ?????",
+    "??? ???? ???????"
+  ],
+  "Pending Enquiries": [
+    "????? ??????",
+    "???? ?????????"
+  ],
+  "KK ID": [
+    "KK ????",
+    "KK ????"
+  ],
+  "EKK ID": [
+    "EKK ????",
+    "EKK ????"
+  ],
+  "No records found.": [
+    "??? ??????? ???? ?????",
+    "???? ?????? ???? ??�??"
+  ],
+  "Pending": [
+    "?????",
+    "????"
+  ],
+  "Enquiries": [
+    "????? ?????",
+    "????????? ???????"
+  ],
+  "Farmer Enquiries": [
+    "????? ?? ????? ?????",
+    "????? ????????? ???????"
+  ],
+  "Refresh": [
+    "???????",
+    "???????"
+  ],
+  "Download Excel": [
+    "?????? ???????",
+    "?????? ???????"
+  ],
+  "Download All 4 Sheets": ["????? ??? ???? ?????? ??????? ????", "?????? ?????? ?????? ??????? ???"],
+  "New Version Surveys": ["?? ?????", "???? ???????"],
+  "Historical Surveys": ["?????? ?????", "????? ???????"],
+  "Survey ID": ["????? ????", "???????? ID"],
+  "Pending ID": ["????? ????", "???? ID"],
+  "Questionnaire Version": ["?????????? ???????", "??????????? ???????"],
+  "All four sheets downloaded successfully.": ["????? ??? ??????????? ??????? ?? ????", "??????? ????? ??????? ??????? ?????"],
+  "Logout": [
+    "??????",
+    "?? ???"
+  ],
+  "Login": [
+    "?????",
+    "????"
+  ],
+  "Password": [
+    "???????",
+    "????????"
+  ],
+  "Admin Username": [
+    "????? ????????",
+    "????? ???????????? ???"
+  ],
+  "View Details": [
+    "????? ?????",
+    "????????? ????"
+  ],
+  "Close": [
+    "??? ????",
+    "???? ???"
+  ],
+  "Name": [
+    "???",
+    "???"
+  ],
+  "Mobile": [
+    "??????",
+    "??????"
+  ],
+  "Type": [
+    "??????",
+    "???"
+  ],
+  "Submitted": [
+    "??? ???? ???",
+    "??? ????? ????"
+  ],
+  "Village / Location": [
+    "???? / ?????",
+    "???? / ?????"
+  ],
+  "Last Updated": [
+    "????? ?????",
+    "??? ?????"
+  ],
+  "Details": [
+    "?????",
+    "???????"
+  ],
+  "Record Status": [
+    "??????? ?? ??????",
+    "??????? ??????"
+  ],
+  "Survey Type": [
+    "????? ?? ??????",
+    "???????? ???"
+  ],
+  "Language": [
+    "????",
+    "????"
+  ],
+  "Created At": [
+    "????? ?? ???",
+    "???????? ????"
+  ],
+  "Submitted At": [
+    "??? ???? ?? ???",
+    "??? ?????? ????"
+  ],
+  "Loading...": [
+    "??? ?? ??? ??...",
+    "??? ?? ???..."
+  ],
+  "Preparing Excel...": [
+    "?????? ????? ?? ??? ??...",
+    "?????? ?????? ?? ???..."
+  ],
+  "Excel downloaded successfully.": [
+    "?????? ??????????? ??????? ????",
+    "?????? ??????? ??????? ?????"
+  ],
+  "Showing": [
+    "???? ??? ??",
+    "?????? ???"
+  ],
+  "of": [
+    "??? ??",
+    "? ?????"
+  ],
+  "Logging in...": [
+    "????? ?? ??? ??...",
+    "???? ?? ???..."
+  ],
+  "Invalid login details.": [
+    "????? ?? ??????? ??? ???",
+    "????? ???? ??? ?????"
+  ],
+  "Invalid username or password.": [
+    "???????? ?? ??????? ??? ???",
+    "???????????? ??? ?? ???????? ??? ?????"
+  ],
+  "Login failed": [
+    "????? ???? ???",
+    "???? ???? ????"
+  ],
+  "Could not load records": [
+    "??????? ??? ???? ?? ???",
+    "?????? ??? ???? ????????"
+  ],
+  "Could not load dashboard": [
+    "???????? ??? ???? ?? ???",
+    "???????? ??? ???? ????????"
+  ],
+  "Excel export failed": [
+    "?????? ??????? ????",
+    "?????? ??????? ????"
+  ],
+  "Not available": [
+    "?????? ????",
+    "?????? ????"
+  ],
+  "Not submitted": [
+    "??? ???? ???",
+    "??? ????? ???? ???"
+  ],
+  "Previous": [
+    "?????",
+    "??????"
+  ],
+  "Next": [
+    "????",
+    "???????"
+  ],
+  "completed": [
+    "???? ???",
+    "????????"
+  ],
+  "draft": [
+    "?????",
+    "?????"
+  ],
+  "farmer": [
+    "?????",
+    "????"
+  ],
+  "stakeholder": [
+    "???????",
+    "???????"
+  ],
+  "name": [
+    "name",
+    "name"
+  ],
+  "mobile": [
+    "mobile",
+    "mobile"
+  ],
+  "email": [
+    "email",
+    "email"
+  ],
+  "location": [
+    "location",
+    "location"
+  ],
+  "age": [
+    "age",
+    "age"
+  ],
+  "experience": [
+    "experience",
+    "experience"
+  ],
+  "land": [
+    "land",
+    "land"
+  ],
+  "crops": [
+    "crops",
+    "crops"
+  ],
+  "landOwnership": [
+    "landOwnership",
+    "landOwnership"
+  ],
+  "topProblems": [
+    "topProblems",
+    "topProblems"
+  ],
+  "seriousProblems": [
+    "seriousProblems",
+    "seriousProblems"
+  ],
+  "financialLoss": [
+    "financialLoss",
+    "financialLoss"
+  ],
+  "diseaseExperience": [
+    "diseaseExperience",
+    "diseaseExperience"
+  ],
+  "infoSources": [
+    "infoSources",
+    "infoSources"
+  ],
+  "infoGaps": [
+    "infoGaps",
+    "infoGaps"
+  ],
+  "seasonCost": [
+    "seasonCost",
+    "seasonCost"
+  ],
+  "smartphone": [
+    "smartphone",
+    "smartphone"
+  ],
+  "appsUsed": [
+    "appsUsed",
+    "appsUsed"
+  ],
+  "photoDiagnosis": [
+    "photoDiagnosis",
+    "photoDiagnosis"
+  ],
+  "digitalNeeds": [
+    "digitalNeeds",
+    "digitalNeeds"
+  ],
+  "languagePreference": [
+    "languagePreference",
+    "languagePreference"
+  ],
+  "trustFactors": [
+    "trustFactors",
+    "trustFactors"
+  ],
+  "digitalBarriers": [
+    "digitalBarriers",
+    "digitalBarriers"
+  ],
+  "useIntent": [
+    "useIntent",
+    "useIntent"
+  ],
+  "paymentModel": [
+    "paymentModel",
+    "paymentModel"
+  ],
+  "willingnessToPay": [
+    "willingnessToPay",
+    "willingnessToPay"
+  ],
+  "paymentConditions": [
+    "paymentConditions",
+    "paymentConditions"
+  ],
+  "whatsappGroup": [
+    "whatsappGroup",
+    "whatsappGroup"
+  ],
+  "farmersSupported": [
+    "farmersSupported",
+    "farmersSupported"
+  ],
+  "stakeholderProblems": [
+    "stakeholderProblems",
+    "stakeholderProblems"
+  ],
+  "guidanceProcess": [
+    "guidanceProcess",
+    "guidanceProcess"
+  ],
+  "stakeholderLoss": [
+    "stakeholderLoss",
+    "stakeholderLoss"
+  ],
+  "digitalTools": [
+    "digitalTools",
+    "digitalTools"
+  ],
+  "valueCreation": [
+    "valueCreation",
+    "valueCreation"
+  ],
+  "pilotReadiness": [
+    "pilotReadiness",
+    "pilotReadiness"
+  ],
+  "adoptionNeeds": [
+    "adoptionNeeds",
+    "adoptionNeeds"
+  ],
+  "sponsorship": [
+    "sponsorship",
+    "sponsorship"
+  ],
+  "pilot": [
+    "pilot",
+    "pilot"
+  ],
+  "recentProblem": [
+    "recentProblem",
+    "recentProblem"
+  ],
+  "timelyBenefit": [
+    "timelyBenefit",
+    "timelyBenefit"
+  ],
+  "paidServices": [
+    "paidServices",
+    "paidServices"
+  ],
+  "trustEvidence": [
+    "trustEvidence",
+    "trustEvidence"
+  ],
+  "firstProblem": [
+    "firstProblem",
+    "firstProblem"
+  ],
+  "recommend": [
+    "recommend",
+    "recommend"
+  ],
+  "referral": [
+    "referral",
+    "referral"
+  ],
+'FPO Surveys':['FPO ?????','FPO ???????'],
+  'Pending Enquiries':['\u0932\u0902\u092c\u093f\u0924 \u092a\u0942\u091b\u0924\u093e\u091b','\u09ac\u09be\u0995\u09c0 \u09a5\u0995\u09be \u09aa\u09cd\u09f0\u09b6\u09cd\u09a8'],
+  'Enquiries':['\u092a\u0942\u091b\u0924\u093e\u091b','\u09aa\u09cd\u09f0\u09b6\u09cd\u09a8'],
+  'Survey':['\u0938\u0930\u094d\u0935\u0947','\u09b8\u09ae\u09c0\u0995\u09cd\u09b7\u09be'],
+  'Pending':['\u0932\u0902\u092c\u093f\u0924','\u09ac\u09be\u0995\u09c0'],
+  'Record Status':['\u0930\u093f\u0915\u0949\u0930\u094d\u0921 \u0938\u094d\u0925\u093f\u0924\u093f','\u09f0\u09c7\u0995\u09f0\u09cd\u09a1\u09f0 \u0985\u09f1\u09b8\u09cd\u09a5\u09be'],
+  'Survey Type':['\u0938\u0930\u094d\u0935\u0947 \u092a\u094d\u0930\u0915\u093e\u0930','\u09b8\u09ae\u09c0\u0995\u09cd\u09b7\u09be\u09f0 \u09a7\u09f0\u09a3'],
+  'Language':['\u092d\u093e\u0937\u093e','\u09ad\u09be\u09b7\u09be'],
+  'Created At':['\u092c\u0928\u093e\u0928\u0947 \u0915\u0940 \u0924\u093e\u0930\u0940\u0916','\u09b8\u09c3\u09b7\u09cd\u099f\u09bf\u09f0 \u09a4\u09be\u09f0\u09bf\u0996'],
+  'Submitted At':['\u091c\u092e\u093e \u0915\u0930\u0928\u0947 \u0915\u0940 \u0924\u093e\u0930\u0940\u0916','\u099c\u09ae\u09be \u09a6\u09bf\u09af\u09bc\u09be\u09f0 \u09a4\u09be\u09f0\u09bf\u0996'],
+  'Not submitted':['\u091c\u092e\u093e \u0928\u0939\u0940\u0902 \u0939\u0941\u0906','\u099c\u09ae\u09be \u09a6\u09bf\u09af\u09bc\u09be \u09b9\u09cb\u09f1\u09be \u09a8\u09be\u0987'],
+  'Showing':['\u0926\u093f\u0916\u093e\u092f\u093e \u091c\u093e \u0930\u0939\u093e \u0939\u0948','\u09a6\u09c7\u0996\u09c1\u0993\u09f1\u09be \u09b9\u09c8\u099b\u09c7'],
+  'of':['\u092e\u0947\u0902 \u0938\u0947','\u09f0 \u09ad\u09bf\u09a4\u09f0'],
+  'farmer':['\u0915\u093f\u0938\u093e\u0928','\u0995\u09c3\u09b7\u0995'],
+  'stakeholder':['FPO','FPO'],
+  'completed':['\u091c\u092e\u093e \u0939\u0941\u0906','\u09b8\u09ae\u09cd\u09aa\u09c2\u09f0\u09cd\u09a3'],
+  'draft':['\u0905\u0927\u0942\u0930\u093e','\u09ac\u09be\u0995\u09c0'],
+  'Pending FPO':['????? FPO ?????','???? FPO ???????'],
+  'new':['???','????'],
+  'legacy':['??????','?????']
+};
+Object.assign(translations,{
+ "Admin Panel":["एडमिन पैनल","এডমিন পেনেল"],
+ "Admin Login":["एडमिन लॉगिन","এডমিন লগইন"],
+ "Survey Dashboard":["सर्वे डैशबोर्ड","সমীক্ষা ডেশ্বব’ৰ্ড"],
+ "Submitted Surveys":["जमा किए गए सर्वे","জমা দিয়া সমীক্ষা"],
+ "Farmer Surveys":["किसान सर्वे","কৃষক সমীক্ষা"],
+ "FPO Surveys":["FPO सर्वे","FPO সমীক্ষা"],
+ "Pending Farmer":["अधूरे किसान सर्वे","অসম্পূৰ্ণ কৃষক সমীক্ষা"],
+ "Pending FPO":["अधूरे FPO सर्वे","অসম্পূৰ্ণ FPO সমীক্ষা"],
+ "Total Pending":["कुल अधूरे ड्राफ्ट","মুঠ অসম্পূৰ্ণ খচৰা"],
+ "Download All 4 Sheets":["सभी पुराने और नए सर्वे डाउनलोड करें","সকলো পুৰণি আৰু নতুন সমীক্ষা ডাউনলোড কৰক"],
+ "Download Pending Drafts":["अधूरे ड्राफ्ट डाउनलोड करें","অসম্পূৰ্ণ খচৰা ডাউনলোড কৰক"],
+ "New Version Surveys":["नए सर्वे","নতুন সমীক্ষা"],
+ "Historical Surveys":["पुराने सर्वे","পুৰণি সমীক্ষা"],
+ "Survey ID":["सर्वे आईडी","সমীক্ষা ID"],
+ "Pending ID":["ड्राफ्ट आईडी","খচৰা ID"],
+ "View Details":["पूरी जानकारी देखें","সম্পূৰ্ণ বিৱৰণ চাওক"],
+ "Close":["बंद करें","বন্ধ কৰক"],
+ "Name":["नाम","নাম"],
+ "Mobile":["मोबाइल","ম’বাইল"],
+ "Type":["प्रकार","ধৰণ"],
+ "Submitted":["जमा किया गया","জমা দিয়া হৈছে"],
+ "Village / Location":["गाँव / स्थान","গাঁও / স্থান"],
+ "Last Updated":["अंतिम अपडेट","শেহতীয়া আপডেট"],
+ "Refresh":["रीफ्रेश करें","পুনৰ লোড কৰক"],
+ "Logout":["लॉगआउट","লগআউট"],
+ "Login":["लॉगिन","লগইন"],
+ "Password":["पासवर्ड","পাছৱৰ্ড"],
+ "Admin Username":["एडमिन यूज़रनेम","এডমিন ব্যৱহাৰকাৰীৰ নাম"],
+ "Download Pending Excel":["अधूरे ड्राफ्ट की Excel डाउनलोड करें","অসম্পূৰ্ণ খচৰাৰ Excel ডাউনলোড কৰক"],
+ "Pending drafts downloaded successfully.":["अधूरे ड्राफ्ट की Excel डाउनलोड हो गई।","অসম্পূৰ্ণ খচৰাৰ Excel ডাউনলোড হৈছে।"],
+ "All four sheets downloaded successfully.":["पुराने और नए सभी चारों शीट डाउनलोड हो गईं।","পুৰণি আৰু নতুন সকলো চাৰিখন শ্বীট ডাউনলোড হৈছে।"],
+ "Questionnaire Version":["प्रश्नावली संस्करण","প্ৰশ্নাৱলীৰ সংস্কৰণ"],
+ "Record Status":["रिकॉर्ड की स्थिति","ৰেকৰ্ডৰ অৱস্থা"],
+ "Survey Type":["सर्वे का प्रकार","সমীক্ষাৰ ধৰণ"],
+ "Language":["भाषा","ভাষা"],
+ "Created At":["बनाने की तारीख","সৃষ্টি কৰাৰ তাৰিখ"],
+ "Submitted At":["जमा करने की तारीख","জমা দিয়াৰ তাৰিখ"],
+ "Loading...":["लोड हो रहा है…","লোড হৈ আছে…"],
+ "Preparing Excel...":["Excel तैयार हो रही है…","Excel প্ৰস্তুত হৈ আছে…"],
+ "Showing":["दिखाए जा रहे हैं","দেখুওৱা হৈছে"],
+ "of":["में से","ৰ ভিতৰত"],
+ "Not available":["उपलब्ध नहीं","উপলব্ধ নহয়"],
+ "Not submitted":["जमा नहीं किया गया","জমা দিয়া হোৱা নাই"],
+ "Previous":["पिछला","আগৰ"],
+ "Next":["अगला","পৰৱৰ্তী"],
+ "completed":["जमा किया गया","সম্পূৰ্ণ"],
+ "draft":["अधूरा ड्राफ्ट","অসম্পূৰ্ণ খচৰা"],
+ "farmer":["किसान","কৃষক"],
+ "stakeholder":["FPO","FPO"],
+ "new":["नया","নতুন"],
+ "legacy":["पुराना","পুৰণি"],
+ "name":["नाम","নাম"],
+ "mobile":["मोबाइल नंबर","ম’বাইল নম্বৰ"],
+ "email":["ईमेल","ইমেইল"],
+ "location":["गाँव / स्थान","গাঁও / স্থান"],
+ "age":["आयु","বয়স"],
+ "experience":["खेती का अनुभव","কৃষিৰ অভিজ্ঞতা"],
+ "land":["जमीन का रकबा","মাটিৰ পৰিমাণ"],
+ "crops":["फसलें","শস্য"],
+ "farmer_crops":["वर्तमान में उगाई जाने वाली फसलें","বৰ্তমান খেতি কৰা শস্য"],
+ "fpo_crops":["FPO किसानों द्वारा उगाई जाने वाली फसलें","FPO কৃষকে খেতি কৰা শস্য"],
+ "landOwnership":["भूमि का स्वामित्व","ভূমিৰ মালিকীস্বত্ব"],
+ "topProblems":["मुख्य समस्याएँ","প্ৰধান সমস্যা"],
+ "seriousProblems":["गंभीर समस्याएँ","গুৰুতৰ সমস্যা"],
+ "financialLoss":["आर्थिक नुकसान","আৰ্থিক ক্ষতি"],
+ "diseaseExperience":["फसल रोग का अनुभव","শস্যৰ ৰোগৰ অভিজ্ঞতা"],
+ "infoSources":["जानकारी के स्रोत","তথ্যৰ উৎস"],
+ "infoGaps":["जानकारी की कमी","তথ্যৰ অভাৱ"],
+ "smartphone":["स्मार्टफोन की उपलब्धता","স্মাৰ্টফোনৰ উপলব্ধতা"],
+ "appsUsed":["उपयोग किए गए ऐप","ব্যৱহাৰ কৰা এপ"],
+ "photoDiagnosis":["फोटो से रोग पहचान","ফটোৰে ৰোগ চিনাক্তকৰণ"],
+ "digitalNeeds":["डिजिटल जरूरतें","ডিজিটেল প্ৰয়োজন"],
+ "languagePreference":["भाषा की पसंद","ভাষাৰ পছন্দ"],
+ "trustFactors":["विश्वास के कारक","বিশ্বাসৰ কাৰক"],
+ "digitalBarriers":["डिजिटल बाधाएँ","ডিজিটেল বাধা"],
+ "useIntent":["उपयोग करने की इच्छा","ব্যৱহাৰৰ ইচ্ছা"],
+ "paymentModel":["भुगतान मॉडल","পৰিশোধৰ আৰ্হি"],
+ "willingnessToPay":["भुगतान करने की इच्छा","পৰিশোধ কৰাৰ ইচ্ছা"],
+ "paymentConditions":["भुगतान की शर्तें","পৰিশোধৰ চৰ্ত"],
+ "whatsappGroup":["WhatsApp समूह से जुड़ना","WhatsApp গোটত যোগদান"],
+ "farmersSupported":["सहायता पाने वाले किसान","সহায় পোৱা কৃষক"],
+ "stakeholderProblems":["हितधारक की समस्याएँ","অংশীদাৰৰ সমস্যা"],
+ "guidanceProcess":["मार्गदर्शन प्रक्रिया","পৰামৰ্শ প্ৰক্ৰিয়া"],
+ "stakeholderLoss":["हितधारक का नुकसान","অংশীদাৰৰ ক্ষতি"],
+ "digitalTools":["डिजिटल उपकरण","ডিজিটেল সঁজুলি"],
+ "valueCreation":["मूल्य निर्माण","মূল্য সৃষ্টি"],
+ "pilotReadiness":["पायलट की तैयारी","পাইলটৰ প্ৰস্তুতি"],
+ "adoptionNeeds":["अपनाने की जरूरतें","গ্ৰহণৰ প্ৰয়োজন"],
+ "sponsorship":["प्रायोजन","পৃষ্ঠপোষকতা"],
+ "pilot":["पायलट","পাইলট"],
+ "recentProblem":["हाल की समस्या","শেহতীয়া সমস্যা"],
+ "timelyBenefit":["समय पर मिलने वाला लाभ","সময়মতে পোৱা সুবিধা"],
+ "paidServices":["भुगतान वाली सेवाएँ","পৰিশোধযোগ্য সেৱা"],
+ "trustEvidence":["विश्वास का प्रमाण","বিশ্বাসৰ প্ৰমাণ"],
+ "firstProblem":["पहली समस्या","প্ৰথম সমস্যা"],
+ "recommend":["अनुशंसा","পৰামৰ্শ"],
+ "referral":["रेफरल","ৰেফাৰেল"],
+});
+function t(value){
+ if(uiLang==='en') return value;
+ const pair=translations[value];
+ const localized=pair ? pair[uiLang==='as'?1:0] : '';
+ return localized && !/[?�]/.test(localized) ? localized : value;
 }
+function applyLanguage(){document.querySelectorAll('[data-en]').forEach(el=>el.textContent=t(el.getAttribute('data-en')));$('username').placeholder=t('Admin Username');$('password').placeholder=t('Password');}
+$('adminLanguage').value=uiLang;$('adminLanguage').addEventListener('change',e=>{uiLang=e.target.value;localStorage.setItem('kk_admin_language',uiLang);applyLanguage();if(token)loadRecords();});
+
+const esc=value=>String(value??'');
+function setMessage(text,good=false){$('status').textContent=t(text);$('status').className=good?'status-good':'';}
 
 $('loginForm').addEventListener('submit',async e=>{
- e.preventDefault();
- $('message').textContent='Logging in...';
+ e.preventDefault();$('message').textContent=t('Logging in...');
  try{
-  const r=await fetch(API+'/api/admin/login',{
-   method:'POST',
-   headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({username:$('username').value.trim(),password:$('password').value})
-  });
-  const d=await r.json();
-  if(!r.ok)throw new Error(d.message||'Login failed');
-  token=d.token;
-  sessionStorage.setItem('kk_admin_token',token);
-  $('login').classList.add('hidden');
-  $('dashboard').classList.remove('hidden');
-  loadRecords();
- }catch(err){$('message').textContent=err.message;}
+  const r=await fetch(API+'/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('username').value.trim(),password:$('password').value})});
+  const d=await r.json();if(!r.ok)throw new Error(d.message||'Login failed');
+  token=d.token;sessionStorage.setItem('kk_admin_token',token);
+  $('login').classList.add('hidden');$('dashboard').classList.remove('hidden');loadRecords();
+ }catch(err){$('message').textContent=t(err.message);}
 });
 
+function switchTab(tab){
+  if (!['farmer','stakeholder','pending_farmer','pending_stakeholder'].includes(tab)) return;
+  currentTab = tab;
+  currentOffset = 0;
+  for (const name of ['farmer','stakeholder','pending_farmer','pending_stakeholder']) {
+    const button = $(name === 'pending_farmer' ? 'pendingFarmerTab' :
+      name === 'pending_stakeholder' ? 'pendingStakeholderTab' : name + 'Tab');
+    button.classList.toggle('active', tab === name);
+    button.classList.toggle('secondary', tab !== name);
+  }
+  const titles = {
+    farmer:'Farmer Surveys',
+    stakeholder:'FPO Surveys',
+    pending_farmer:'Pending Farmer',
+    pending_stakeholder:'Pending FPO'
+  };
+  $('listTitle').textContent = t(titles[tab]);
+  loadRecords();
+}
+
 async function loadRecords(){
- $('status').textContent='Loading records...';
- try{
-  const r=await fetch(API+'/api/admin/surveys?limit='+pageSize+'&offset='+currentOffset,{
-   headers:{Authorization:'Bearer '+token}
-  });
-  const d=await r.json();
-  if(!r.ok)throw new Error(d.message||'Could not load records');
+  setMessage(t('Loading...'));
 
-  const sr=await fetch(API+'/api/admin/dashboard',{
-   headers:{Authorization:'Bearer '+token}
-  });
-  const sd=await sr.json();
-  if(!sr.ok)throw new Error(sd.message||'Could not load counts');
+  try {
+    const isPending = currentTab.startsWith('pending_');
+    const pendingType = currentTab === 'pending_stakeholder' ? 'stakeholder' : 'farmer';
+    const endpoint = isPending
+      ? '/api/admin/enquiries?type=' + pendingType
+      : '/api/admin/surveys?type=' + encodeURIComponent(currentTab);
 
-  const s=sd.summary||{};
-  const rows=d.surveys||[];
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const r = await fetch(
+      API + endpoint + separator + 'limit=' + pageSize + '&offset=' + currentOffset,
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
 
-  $('farmers').textContent=s.farmer_surveys??0;
-  $('stakeholders').textContent=s.stakeholder_surveys??0;
-  $('drafts').textContent=s.total_drafts??0;
-  $('submitted').textContent=s.total_submitted??0;
-  $('total').textContent=d.total??0;
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.message || 'Could not load records');
 
-  $('records').replaceChildren();
-  rows.forEach(x=>{
-   const tr=document.createElement('tr');
-   const statusCell=document.createElement('td');
-   statusCell.textContent=x.status||'';
-   if(x.submitted_at||x.created_at){const small=document.createElement('small');small.textContent=new Date(x.submitted_at||x.created_at).toLocaleString('en-IN');small.style.display='block';small.style.marginTop='4px';statusCell.append(small);}
-   tr.append(
-    safe(x.response_id),
-    safe(x.answers?.name),
-    safe(x.survey_type),
-    safe(x.status),
-    safe(x.submitted_at ? new Date(x.submitted_at).toLocaleString("en-IN") : ""),
-   );
-   $('records').append(tr);
-  });
+    const sr = await fetch(API + '/api/admin/dashboard', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const sd = await sr.json();
+    if (!sr.ok) throw new Error(sd.message || 'Could not load dashboard');
 
-  let pager=$('recordPagination');
-  if(!pager){
-   pager=document.createElement('div');
-   pager.id='recordPagination';
-   pager.style.marginTop='15px';
-   $('records').parentElement.parentElement.append(pager);
+    const summary = sd.summary || {};
+    $('submitted').textContent = summary.total_submitted ?? 0;
+    $('newSubmitted').textContent = summary.new_submitted ?? 0;
+    $('oldSubmitted').textContent = summary.old_submitted ?? 0;
+    $('farmers').textContent = summary.farmer_surveys ?? 0;
+    $('stakeholders').textContent = summary.stakeholder_surveys ?? 0;
+    $('pendingFarmers').textContent = summary.pending_farmer ?? 0;
+    $('pendingStakeholders').textContent = summary.pending_stakeholder ?? 0;
+    $('enquiries').textContent = summary.total_pending ?? summary.total_enquiries ?? 0;
+
+    const rows = isPending
+      ? (d.pending || d.enquiries || [])
+      : (d.surveys || []);
+
+    const headings = isPending
+      ? ['Pending ID','Name','Mobile','Village / Location','Last Updated','Details']
+      : ['Survey ID','Name','Mobile','Type','Submitted','Details'];
+
+    $('tableHead').replaceChildren();
+    const headerRow = document.createElement('tr');
+
+    headings.forEach(heading => {
+      const th = document.createElement('th');
+      th.textContent = t(heading);
+      headerRow.append(th);
+    });
+
+    $('tableHead').append(headerRow);
+    $('records').replaceChildren();
+
+    if (!rows.length) {
+      const emptyRow = document.createElement('tr');
+      const emptyCell = document.createElement('td');
+      emptyCell.colSpan = headings.length;
+      emptyCell.className = 'muted';
+      emptyCell.textContent = t('No records found.');
+      emptyRow.append(emptyCell);
+      $('records').append(emptyRow);
+    }
+
+    rows.forEach(record => {
+      const tr = document.createElement('tr');
+      const name = record.answers?.name || record.name || '';
+      const mobile = record.answers?.mobile || record.mobile || '';
+      const location = record.answers?.location || record.answers?.address || record.answers?.fpo_district || record.location || '';
+      const dateValue = isPending
+        ? (record.updated_at || record.created_at)
+        : (record.submitted_at || record.created_at);
+
+      const dateText = dateValue
+        ? new Date(dateValue).toLocaleString('en-IN')
+        : '';
+
+      const values = isPending
+        ? [record.response_id, name, mobile, location, dateText]
+        : [
+            record.response_id,
+            name,
+            mobile,
+            t(record.survey_type || currentTab),
+            dateText
+          ];
+
+      values.forEach(value => {
+        const td = document.createElement('td');
+        td.textContent = String(value ?? '');
+        tr.append(td);
+      });
+
+      const action = document.createElement('td');
+      action.className = 'actions';
+
+      const view = document.createElement('button');
+      view.textContent = t('View Details');
+      view.onclick = () => showDetails(record);
+
+      action.append(view);
+      tr.append(action);
+      $('records').append(tr);
+    });
+
+    $('recordPagination').replaceChildren();
+
+    const prev = document.createElement('button');
+    prev.textContent = t('Previous');
+    prev.className = 'secondary';
+    prev.disabled = currentOffset === 0;
+    prev.onclick = () => {
+      currentOffset = Math.max(0, currentOffset - pageSize);
+      loadRecords();
+    };
+
+    const next = document.createElement('button');
+    next.textContent = t('Next');
+    next.className = 'secondary';
+    next.disabled = currentOffset + pageSize >= d.total;
+    next.onclick = () => {
+      currentOffset += pageSize;
+      loadRecords();
+    };
+
+    $('recordPagination').append(prev, next);
+
+    const category = currentTab === 'farmer'
+      ? 'Farmer Surveys'
+      : currentTab === 'stakeholder'
+        ? 'FPO Surveys'
+        : currentTab === 'pending_farmer'
+          ? 'Pending Farmer'
+          : 'Pending FPO';
+
+    setMessage(
+      t('Showing') + ' ' +
+      (rows.length ? currentOffset + 1 : 0) + '-' +
+      (currentOffset + rows.length) + ' ' +
+      t('of') + ' ' + d.total + ' ' + t(category) + '.',
+      true
+    );
+  } catch (err) {
+    setMessage(err.message);
   }
-  pager.replaceChildren();
+}
 
-  const prev=document.createElement('button');
-  prev.textContent='Previous';
-  prev.disabled=currentOffset===0;
-  prev.onclick=()=>{currentOffset=Math.max(0,currentOffset-pageSize);loadRecords();};
+function showDetails(record){
+  const pending = currentTab.startsWith('pending_');
+  $('modalTitle').textContent =
+    t(pending ? 'Pending' : 'Survey') + ' · ' +
+    (record.response_id || '');
 
-  const next=document.createElement('button');
-  next.textContent='Next';
-  next.disabled=currentOffset+pageSize>=d.total;
-  next.onclick=()=>{currentOffset+=pageSize;loadRecords();};
+  const answers = record.answers && typeof record.answers === 'object'
+    ? record.answers
+    : {};
 
-  pager.append(prev,next);
-  $('status').textContent='Showing '+(currentOffset+1)+'-'+(currentOffset+rows.length)+' of '+d.total+' records.';
- }catch(err){$('status').textContent=err.message;}
-}async function downloadExcel(){
- $('status').textContent='Preparing Excel...';
- try{
-  const r=await fetch(API+'/api/admin/export-excel',{
-   headers:{Authorization:'Bearer '+token}
+  const details = {
+    [t(pending ? 'Pending ID' : 'Survey ID')]: record.response_id,
+    [t('Questionnaire Version')]: t(record.survey_version || 'legacy'),
+    [t('Record Status')]: t(record.status || ''),
+    [t('Survey Type')]: t(record.survey_type || ''),
+    [t('Language')]: record.language || '',
+    [t('Created At')]: record.created_at
+      ? new Date(record.created_at).toLocaleString('en-IN')
+      : '',
+    [t('Submitted At')]: record.submitted_at
+      ? new Date(record.submitted_at).toLocaleString('en-IN')
+      : t('Not submitted'),
+    ...Object.fromEntries(
+      Object.entries(answers).map(([key, value]) => [t(key) === key ? key.replaceAll('_', ' ') : t(key), value])
+    )
+  };
+
+  $('detailContent').replaceChildren();
+
+  Object.entries(details).forEach(([key, value]) => {
+    const item = document.createElement('div');
+    item.className = 'detail';
+
+    const label = document.createElement('b');
+    label.textContent = key;
+
+    const content = document.createElement('span');
+    if (value && typeof value === 'object' && value.dataUrl) {
+      const preview = document.createElement('img');
+      preview.src = value.dataUrl;
+      preview.alt = value.fileName || 'Survey photo';
+      preview.style.cssText = 'display:block;max-width:220px;max-height:180px;object-fit:contain;margin-top:6px;border-radius:8px';
+      content.textContent = value.fileName || 'Uploaded photo';
+      content.append(preview);
+    } else {
+      content.textContent = Array.isArray(value)
+        ? value.join(', ')
+        : (value && typeof value === 'object'
+            ? JSON.stringify(value)
+            : String(value ?? ''));
+    }
+
+    item.append(label, content);
+    $('detailContent').append(item);
   });
-  if(!r.ok){
-   const d=await r.json().catch(()=>({}));
-   throw new Error(d.message||'Excel export endpoint is not ready yet.');
+
+  $('detailsModal').classList.remove('hidden');
+}
+function closeDetails(){$('detailsModal').classList.add('hidden');}
+$('detailsModal').addEventListener('click',e=>{if(e.target===$('detailsModal'))closeDetails();});
+
+async function downloadExcel(){
+  setMessage(t('Preparing Excel...'));
+
+  try {
+    const r = await fetch(
+      API + '/api/admin/export-excel?type=' +
+      encodeURIComponent(currentTab) + '&lang=' + encodeURIComponent(uiLang),
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      throw new Error(d.message || 'Excel export failed');
+    }
+
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+
+    a.href = url;
+    a.download = 'Khushhal_Kisan_All_4_Survey_Sheets.xlsx';
+
+    document.body.append(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    setMessage(t('All four sheets downloaded successfully.'), true);
+  } catch (err) {
+    setMessage(err.message);
   }
-  const blob=await r.blob();
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download='Khushhal_Kisan_Survey_Data.xlsx';
-  a.click();URL.revokeObjectURL(url);
-  $('status').textContent='Excel downloaded.';
- }catch(err){$('status').textContent=err.message;}
 }
 
-function logout(){
- token='';
- sessionStorage.removeItem('kk_admin_token');
- $('dashboard').classList.add('hidden');
- $('login').classList.remove('hidden');
- $('password').value='';
+async function downloadPendingExcel(){
+  setMessage(t('Preparing Excel...'));
+  try{
+    const r=await fetch(API+'/api/admin/export-pending-excel',{headers:{Authorization:'Bearer '+token}});
+    if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||'Pending Excel export failed');}
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='Khushhal_Kisan_Pending_Drafts.xlsx';
+    document.body.append(a);a.click();a.remove();
+    URL.revokeObjectURL(url);
+    setMessage(t('Pending drafts downloaded successfully.'),true);
+  }catch(err){setMessage(err.message);}
 }
-token=sessionStorage.getItem('kk_admin_token')||'';
-if(token){
- $('login').classList.add('hidden');
- $('dashboard').classList.remove('hidden');
- loadRecords();
-}
+
+function logout(){token='';sessionStorage.removeItem('kk_admin_token');$('dashboard').classList.add('hidden');$('login').classList.remove('hidden');$('password').value='';}
+applyLanguage();if(token){$('login').classList.add('hidden');$('dashboard').classList.remove('hidden');loadRecords();}
 </script>
 </body>
 </html>
-'@ | Set-Content "..\client\admin.html" -Encoding UTF8
-
-
-
-
-
-
-
-
-
