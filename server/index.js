@@ -1290,7 +1290,7 @@ app.get('/api/admin/surveys', requireAdmin, async (req, res) => {
     const localResult = await pool.query(`
       SELECT id, response_id, legacy_response_id, survey_type, survey_version,
              language, status, answers, farmer_id, name, mobile,
-             COALESCE(location, address, answers->>'address', answers->>'fpo_district') AS location,
+             COALESCE(location, answers->>'address', answers->>'fpo_district') AS location,
              submitted_at, created_at
       FROM survey_responses
       WHERE status = 'completed' AND COALESCE(survey_version, 'new') = 'new'
@@ -1382,7 +1382,7 @@ app.get('/api/admin/enquiries', requireAdmin, async (req, res) => {
     );
     const result = await pool.query(
       `SELECT id, response_id, legacy_response_id, survey_type, survey_version, language, status, answers,
-              name, mobile, COALESCE(location, address, answers->>'address', answers->>'fpo_district') AS location,
+              name, mobile, COALESCE(location, answers->>'address', answers->>'fpo_district') AS location,
               current_step, created_at, updated_at
        FROM survey_responses ${where}
        ORDER BY updated_at DESC, id DESC
@@ -1440,7 +1440,7 @@ app.get('/api/admin/export-excel', requireAdmin, async (_req, res) => {
       SELECT id, response_id, legacy_response_id, survey_type, language, status, answers,
              COALESCE(name, answers->>'name', answers->>'contact_person', answers->>'fpo_name', '') AS name,
              COALESCE(mobile, answers->>'mobile', '') AS mobile,
-             COALESCE(location, address, answers->>'address', answers->>'fpo_district', '') AS address,
+             COALESCE(location, answers->>'address', answers->>'fpo_district', '') AS address,
              created_at, submitted_at, updated_at
       FROM survey_responses
       WHERE COALESCE(survey_version, 'new') = 'new'
