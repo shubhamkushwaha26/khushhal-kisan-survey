@@ -146,7 +146,7 @@ const QUESTION_COLUMNS = {
   pilotReadiness: 'pilotReadiness',
   adoptionNeeds: 'adoptionNeeds',
   sponsorship: 'sponsorship',
-  address: 'address',
+
   satisfied_farming: 'satisfied_farming',
   children_farming: 'children_farming',
   farm_income: 'farm_income',
