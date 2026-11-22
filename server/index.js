@@ -420,35 +420,11 @@ function normalizeIndianMobile(raw) {
 }
 
 function getQuestionData(answers) {
-  const columns = [];
-  const values = [];
-  const casts = [];
-
-  for (const [answerKey, columnName] of Object.entries(QUESTION_COLUMNS)) {
-    if (!Object.prototype.hasOwnProperty.call(answers, answerKey)) {
-      continue;
-    }
-
-    const value = normalizeAnswer(answers[answerKey]);
-
-    columns.push(`"${columnName}"`);
-
-    if (JSONB_QUESTION_KEYS.has(answerKey)) {
-      values.push(value === null ? null : JSON.stringify(value));
-      casts.push('::jsonb');
-    } else {
-      // Blank or unanswered values are written as SQL NULL.
-      values.push(
-        value === null ? null :
-          typeof value === 'string' ? value : JSON.stringify(value)
-      );
-      casts.push('');
-    }
-  }
-
-  return { columns, values, casts };
+  // New database stores all questionnaire answers in the answers JSONB column.
+  // Question-wise rows are maintained by syncSurveyAnswerRows().
+  // QUESTION_COLUMNS remains available for reading legacy Neon records.
+  return { columns: [], values: [], casts: [] };
 }
-
 function buildQuestionInsert(answers) {
   const data = getQuestionData(answers);
 
