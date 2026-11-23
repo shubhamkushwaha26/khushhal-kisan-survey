@@ -1,0 +1,566 @@
+{
+  "farmer": [
+    {
+      "id": "name",
+      "number": "1",
+      "hi": "किसान का नाम",
+      "en": "Farmer name",
+      "as": "কৃষকৰ নাম",
+      "type": "text"
+    },
+    {
+      "id": "age",
+      "number": "2",
+      "hi": "आयु (Age)",
+      "en": "Age",
+      "as": "বয়স (Age)",
+      "type": "number"
+    },
+    {
+      "id": "mobile",
+      "number": "3",
+      "hi": "मोबाइल नंबर",
+      "en": "Mobile number",
+      "as": "ম’বাইল নম্বৰ",
+      "type": "tel"
+    },
+    {
+      "id": "address",
+      "number": "4",
+      "hi": "पता",
+      "en": "Address",
+      "as": "ঠিকনা",
+      "type": "textarea"
+    },
+    {
+      "id": "satisfied_farming",
+      "number": "5",
+      "hi": "क्या आप खेती से संतुष्ट हैं?",
+      "en": "Are you satisfied with farming?",
+      "as": "আপুনি কৃষিকাৰ্যত সন্তুষ্ট নে?",
+      "type": "radio"
+    },
+    {
+      "id": "children_farming",
+      "number": "6",
+      "hi": "क्या आप अपने बच्चों को खेती करने के लिए प्रोत्साहित कर रहे हैं?",
+      "en": "Do you encourage your children to take up farming?",
+      "as": "আপুনি আপোনাৰ সন্তানক কৃষিকাৰ্য কৰিবলৈ উৎসাহিত কৰেনে?",
+      "type": "radio"
+    },
+    {
+      "id": "farm_income",
+      "number": "7",
+      "hi": "क्या खेती से हो रही कमाई से आपके परिवार का खर्च चल जाता है?",
+      "en": "Is your farming income sufficient to meet your family expenses?",
+      "as": "কৃষিৰ উপাৰ্জনে আপোনাৰ পৰিয়ালৰ খৰচ চলাব পাৰেনে?",
+      "type": "radio"
+    },
+    {
+      "id": "irrigation_method",
+      "number": "8",
+      "hi": "आप अपने खेत में सिंचाई के लिए कौन-सा तरीका अपनाते हैं?",
+      "en": "Which irrigation method do you use in your field?",
+      "as": "আপুনি পথাৰত জলসিঞ্চনৰ বাবে কোনটো পদ্ধতি ব্যৱহাৰ কৰে?",
+      "type": "radio"
+    },
+    {
+      "id": "irrigation_frequency",
+      "number": "9",
+      "hi": "आप अपने खेत में कितनी बार सिंचाई करते हैं?",
+      "en": "How many times do you irrigate your field?",
+      "as": "আপুনি পথাৰত কিমানবাৰ জলসিঞ্চন কৰে?",
+      "type": "radio"
+    },
+    {
+      "id": "irrigation_crop",
+      "number": "9.1",
+      "hi": "फसल का नाम",
+      "en": "Crop name",
+      "as": "শস্যৰ নাম",
+      "type": "text"
+    },
+    {
+      "id": "field_location",
+      "number": "10",
+      "hi": "आपका खेत कहाँ पर स्थित है? (Location)",
+      "en": "Where is your field located?",
+      "as": "আপোনাৰ পথাৰ ক’ত অৱস্থিত? (Location)",
+      "type": "radio"
+    },
+    {
+      "id": "crop_quality",
+      "number": "11",
+      "hi": "क्या आपकी फसल की पैदावार उच्च गुणवत्ता की होती है?",
+      "en": "Is your crop produce of high quality?",
+      "as": "আপোনাৰ শস্যৰ উৎপাদনৰ মান উন্নত নে?",
+      "type": "radio"
+    },
+    {
+      "id": "low_quality_reasons",
+      "number": "11.1",
+      "hi": "आपकी फसल की पैदावार कम या गुणवत्ता खराब होने के क्या कारण हैं?",
+      "en": "What causes low crop yield or poor quality?",
+      "as": "শস্যৰ উৎপাদন কম বা মান বেয়া হোৱাৰ কাৰণ কি?",
+      "type": "checks"
+    },
+    {
+      "id": "soil_test",
+      "number": "12",
+      "hi": "क्या आपने अपने खेत की मिट्टी की जाँच कराई है?",
+      "en": "Have you tested your field soil?",
+      "as": "আপুনি পথাৰৰ মাটি পৰীক্ষা কৰাইছেনে?",
+      "type": "radio"
+    },
+    {
+      "id": "soil_test_method",
+      "number": "12.1",
+      "hi": "आपने अपने खेत की मिट्टी की जाँच किस माध्यम से कराई है?",
+      "en": "How did you get your soil tested?",
+      "as": "আপুনি কেনেদৰে পথাৰৰ মাটি পৰীক্ষা কৰাইছিল?",
+      "type": "radio"
+    },
+    {
+      "id": "soil_report_photo",
+      "number": null,
+      "hi": "मिट्टी जाँच की रिपोर्ट का फोटो अपलोड करें (वैकल्पिक)",
+      "en": "Upload a photo of the soil test report (Optional)",
+      "as": "মাটি পৰীক্ষাৰ প্ৰতিবেদনৰ ফটো আপলোড কৰক (ঐচ্ছিক)",
+      "type": "file"
+    },
+    {
+      "id": "fertilizer_quantity",
+      "number": "13",
+      "hi": "आप कितना खाद अपने खेत में उपयोग करते हैं? (मात्रा प्रति एकड़ के हिसाब से लिखें) (वैकल्पिक)",
+      "en": "How much fertiliser do you use in your field? (Enter the quantity per acre) (Optional)",
+      "as": "আপুনি পথাৰত কিমান পৰিমাণৰ সাৰ ব্যৱহাৰ কৰে? (প্ৰতি একৰ হিচাপে পৰিমাণ লিখক) (ঐচ্ছিক)",
+      "type": "text"
+    },
+    {
+      "id": "fertilizer_type",
+      "number": "14",
+      "hi": "आप किस तरह के खाद का उपयोग खेत में करते हैं?",
+      "en": "What type of fertiliser do you use in your field?",
+      "as": "আপুনি পথাৰত কেনেধৰণৰ সাৰ ব্যৱহাৰ কৰে?",
+      "type": "checks"
+    },
+    {
+      "id": "culture_treatment",
+      "number": "15",
+      "hi": "क्या आप अपने खेत में कीट नियंत्रण के लिए Culture Based उपचार का प्रयोग करते हैं? (जैसे केंचुआ, बैक्टीरिया, राइज़ोबियम (Rhizobium), फॉस्फोरस (Phosphorus आदि)",
+      "en": "Do you use culture-based treatments for pest control in your field? (e.g. earthworms, bacteria, Rhizobium, Phosphorus, etc.)",
+      "as": "আপুনি পথাৰত কীট নিয়ন্ত্ৰণৰ বাবে Culture Based চিকিৎসা ব্যৱহাৰ কৰেনে? (যেনে কেঁচু, বেক্টেৰিয়া, Rhizobium, Phosphorus আদি)",
+      "type": "radio"
+    },
+    {
+      "id": "farming_system",
+      "number": "16",
+      "hi": "आप खेती करने के लिए कौन-सी प्रणाली का प्रयोग करते हैं?",
+      "en": "Which farming system do you use?",
+      "as": "আপুনি কোনটো কৃষি পদ্ধতি ব্যৱহাৰ কৰে?",
+      "type": "radio"
+    },
+    {
+      "id": "farmer_crops",
+      "number": "17",
+      "hi": "आप वर्तमान में कौन-कौन सी फसलें उगाते हैं?",
+      "en": "Which crops do you currently grow?",
+      "as": "আপুনি বৰ্তমান কোনবোৰ শস্যৰ খেতি কৰে?",
+      "type": "textarea"
+    },
+    {
+      "id": "pest_attack",
+      "number": "18",
+      "hi": "क्या आपके खेत में कीट लगते हैं?",
+      "en": "Do pests attack crops in your field?",
+      "as": "আপোনাৰ পথাৰত শস্যত কীট-পতংগ লাগে নে?",
+      "type": "radio"
+    },
+    {
+      "id": "recent_disease_group",
+      "number": "19",
+      "hi": "हाल ही में आपकी फसल किस बीमारी से प्रभावित हुई थी?",
+      "en": "Which disease recently affected your crop?",
+      "as": "শেহতীয়াকৈ আপোনাৰ শস্যত কোনটো ৰোগ হৈছিল?",
+      "type": "group"
+    },
+    {
+      "id": "recent_crop_name",
+      "number": "19.1",
+      "hi": "फसल का नाम",
+      "en": "Crop name",
+      "as": "শস্যৰ নাম",
+      "type": "text"
+    },
+    {
+      "id": "recent_disease_name",
+      "number": "19.2",
+      "hi": "बीमारी का नाम",
+      "en": "Disease name",
+      "as": "ৰোগৰ নাম",
+      "type": "text"
+    },
+    {
+      "id": "disease_photo",
+      "number": "14.2",
+      "hi": "बीमारी से प्रभावित फसल की फोटो अपलोड करें (वैकल्पिक)",
+      "en": "Upload a photo of the diseased crop (Optional)",
+      "as": "ৰোগত আক্ৰান্ত শস্যৰ ফটো আপলোড কৰক (ঐচ্ছিক)",
+      "type": "file"
+    },
+    {
+      "id": "disease_treatment",
+      "number": "20",
+      "hi": "बीमारी के इलाज के लिए आपने क्या किया?",
+      "en": "What did you do to treat the disease?",
+      "as": "ৰোগৰ চিকিৎসাৰ বাবে আপুনি কি কৰিছিল?",
+      "type": "checks"
+    },
+    {
+      "id": "sell_where",
+      "number": "21",
+      "hi": "आप अपनी फसल को कहाँ बेचते हैं?",
+      "en": "Where do you sell your crops?",
+      "as": "আপুনি আপোনাৰ শস্য ক’ত বিক্ৰী কৰে?",
+      "type": "checks"
+    },
+    {
+      "id": "selling_problems",
+      "number": "22",
+      "hi": "फसल बेचने में आपको क्या समस्या आती है?",
+      "en": "What problems do you face while selling crops?",
+      "as": "শস্য বিক্ৰী কৰোঁতে আপুনি কি সমস্যাৰ সন্মুখীন হয়?",
+      "type": "checks"
+    },
+    {
+      "id": "desired_selling_solution",
+      "number": "23",
+      "hi": "उपज की बिक्री के लिए आप क्या उपाय अपनाना चाहते हैं?",
+      "en": "What solution would you prefer for selling your produce?",
+      "as": "উৎপাদিত শস্য বিক্ৰীৰ বাবে আপুনি কি ব্যৱস্থা বিচাৰে?",
+      "type": "checks"
+    },
+    {
+      "id": "crop_residue",
+      "number": "24",
+      "hi": "आप अपनी फसल के अवशेष का क्या करते हैं?",
+      "en": "What do you do with crop residue?",
+      "as": "আপুনি শস্যৰ অৱশিষ্টখিনিৰে কি কৰে?",
+      "type": "checks"
+    },
+    {
+      "id": "mobile_solution",
+      "number": "25",
+      "hi": "क्या आपको अपनी खेती से जुड़ी सभी समस्या के लिए अपने मोबाइल पर ही समाधान चाहिए?",
+      "en": "Would you like solutions to all your farming problems on your mobile?",
+      "as": "আপুনি কৃষি সম্পৰ্কীয় সকলো সমস্যাৰ সমাধান নিজৰ ম’বাইলতে বিচাৰেনে?",
+      "type": "radio"
+    },
+    {
+      "id": "ai_crop",
+      "number": "1",
+      "hi": "फसल अनुशंसा प्रणाली",
+      "en": "Crop Recommendation System",
+      "as": "শস্য পৰামৰ্শ ব্যৱস্থা",
+      "type": "rating"
+    },
+    {
+      "id": "ai_yield",
+      "number": "2",
+      "hi": "फसल उत्पादन पूर्वानुमान",
+      "en": "Crop Yield Prediction",
+      "as": "শস্য উৎপাদনৰ পূৰ্বানুমান",
+      "type": "rating"
+    },
+    {
+      "id": "ai_disease",
+      "number": "3",
+      "hi": "फसल रोग पहचान प्रणाली",
+      "en": "Disease Detection",
+      "as": "শস্যৰ ৰোগ চিনাক্তকৰণ ব্যৱস্থা",
+      "type": "rating"
+    },
+    {
+      "id": "ai_irrigation",
+      "number": "4",
+      "hi": "सिंचाई अनुशंसा प्रणाली",
+      "en": "Irrigation Recommendation",
+      "as": "জলসিঞ্চনৰ পৰামৰ্শ ব্যৱস্থা",
+      "type": "rating"
+    },
+    {
+      "id": "ai_pest_risk",
+      "number": "5",
+      "hi": "कीट एवं रोग जोखिम पूर्वानुमान",
+      "en": "Pest & Disease Risk Forecast",
+      "as": "কীট-পতংগ আৰু ৰোগৰ আশংকাৰ পূৰ্বানুমান",
+      "type": "rating"
+    },
+    {
+      "id": "ai_market",
+      "number": "6",
+      "hi": "बाजार मूल्य पूर्वानुमान",
+      "en": "Market Price Prediction",
+      "as": "বজাৰ মূল্যৰ পূৰ্বানুমান",
+      "type": "rating"
+    },
+    {
+      "id": "ai_cost",
+      "number": "7",
+      "hi": "खेती लागत अनुकूलन प्रणाली",
+      "en": "Cost Optimization Engine",
+      "as": "কৃষি ব্যয় অনুকূলন ব্যৱস্থা",
+      "type": "rating"
+    }
+  ],
+  "stakeholder": [
+    {
+      "id": "fpo_name",
+      "number": "",
+      "hi": "एफपीओ का नाम",
+      "en": "FPO name",
+      "as": "FPO-ৰ নাম",
+      "type": "text"
+    },
+    {
+      "id": "contact_person",
+      "number": "",
+      "hi": "संपर्क व्यक्ति का नाम",
+      "en": "Contact person name",
+      "as": "যোগাযোগ ব্যক্তিৰ নাম",
+      "type": "text"
+    },
+    {
+      "id": "mobile",
+      "number": "",
+      "hi": "मोबाइल नंबर",
+      "en": "Mobile number",
+      "as": "ম’বাইল নম্বৰ",
+      "type": "tel"
+    },
+    {
+      "id": "fpo_role",
+      "number": "1",
+      "hi": "आपके एफपीओ में आपका पद क्या है?",
+      "en": "What is your position in your FPO?",
+      "as": "আপোনাৰ FPO-ত আপোনাৰ পদবী কি?",
+      "type": "radio"
+    },
+    {
+      "id": "fpo_district",
+      "number": "2",
+      "hi": "आपका एफपीओ उत्तर प्रदेश के किस जिले में पंजीकृत है?",
+      "en": "In which district of Uttar Pradesh is your FPO registered?",
+      "as": "উত্তৰ প্ৰদেশৰ কোনখন জিলাত আপোনাৰ FPO পঞ্জীয়ন কৰা হৈছে?",
+      "type": "text"
+    },
+    {
+      "id": "fpo_years",
+      "number": "3",
+      "hi": "आपका एफपीओ कितने समय से कार्यरत है?",
+      "en": "How long has your FPO been operating?",
+      "as": "আপোনাৰ FPO কিমান দিন ধৰি কাৰ্যৰত?",
+      "type": "radio"
+    },
+    {
+      "id": "fpo_member_count",
+      "number": "4",
+      "hi": "आपके एफपीओ से कितने किसान सदस्य जुड़े हुए हैं?",
+      "en": "How many farmer members are associated with your FPO?",
+      "as": "আপোনাৰ FPO-ৰ সৈতে কিমানজন কৃষক সদস্য জড়িত?",
+      "type": "number"
+    },
+    {
+      "id": "fpo_activities",
+      "number": "5",
+      "hi": "आपका एफपीओ मुख्य रूप से किन कृषि गतिविधियों में कार्य करता है? (एक से अधिक विकल्प चुन सकते हैं)",
+      "en": "Which agricultural activities does your FPO mainly work in? (Select all that apply)",
+      "as": "আপোনাৰ FPO-এ মূলতঃ কোনবোৰ কৃষি কাৰ্যকলাপত কাম কৰে? (একাধিক বিকল্প বাছনি কৰিব পাৰে)",
+      "type": "checks"
+    },
+    {
+      "id": "fpo_crops",
+      "number": "6",
+      "hi": "आपके एफपीओ से जुड़े किसान मुख्य रूप से कौन-कौन सी फसलें उगाते हैं?",
+      "en": "Which crops do farmers associated with your FPO mainly grow?",
+      "as": "আপোনাৰ FPO-ৰ সৈতে জড়িত কৃষকসকলে মূলতঃ কোনবোৰ শস্যৰ খেতি কৰে?",
+      "type": "textarea"
+    },
+    {
+      "id": "fpo_farmer_problems",
+      "number": "7",
+      "hi": "आपके एफपीओ से जुड़े किसानों को मुख्य रूप से किन समस्याओं का सामना करना पड़ता है? (एक से अधिक विकल्प चुन सकते हैं)",
+      "en": "What major problems do farmers associated with your FPO face? (Select all that apply)",
+      "as": "আপোনাৰ FPO-ৰ কৃষকসকলে মূলতঃ কি সমস্যাৰ সন্মুখীন হয়? (একাধিক বিকল্প বাছনি কৰিব পাৰে)",
+      "type": "checks"
+    },
+    {
+      "id": "fpo_disease_identification",
+      "number": "8",
+      "hi": "किसान वर्तमान में फसलों में होने वाले रोगों की पहचान किस माध्यम से करते हैं?",
+      "en": "How do farmers currently identify crop diseases?",
+      "as": "কৃষকসকলে বৰ্তমান কেনেদৰে শস্যৰ ৰোগ চিনাক্ত কৰে?",
+      "type": "checks"
+    },
+    {
+      "id": "fpo_support_challenge",
+      "number": "9",
+      "hi": "किसानों को कृषि सहायता प्रदान करने में आपके एफपीओ के सामने सबसे बड़ी चुनौती क्या है?",
+      "en": "What is the biggest challenge your FPO faces in providing agricultural support to farmers?",
+      "as": "কৃষকক কৃষি সহায় আগবঢ়োৱাত আপোনাৰ FPO-ৰ সন্মুখীন হোৱা আটাইতকৈ ডাঙৰ প্ৰত্যাহ্বান কি?",
+      "type": "radio"
+    },
+    {
+      "id": "fpo_digital_use",
+      "number": "10",
+      "hi": "क्या आपका एफपीओ वर्तमान में किसानों की सहायता के लिए किसी डिजिटल प्लेटफॉर्म या मोबाइल एप्लिकेशन का उपयोग करता है?",
+      "en": "Does your FPO currently use any digital platform or mobile application to support farmers?",
+      "as": "আপোনাৰ FPO-এ বৰ্তমান কৃষকক সহায় কৰিবলৈ কোনো ডিজিটেল প্লেটফৰ্ম বা ম’বাইল এপ ব্যৱহাৰ কৰেনে?",
+      "type": "radio"
+    },
+    {
+      "id": "fpo_digital_satisfaction",
+      "number": "10.1",
+      "hi": "मौजूदा डिजिटल कृषि सेवाओं से आपका एफपीओ कितना संतुष्ट है?",
+      "en": "How satisfied is your FPO with existing digital agriculture services?",
+      "as": "বৰ্তমানৰ ডিজিটেল কৃষি সেৱাসমূহৰ প্ৰতি আপোনাৰ FPO কিমান সন্তুষ্ট?",
+      "type": "radio"
+    },
+    {
+      "id": "fpo_digital_barriers",
+      "number": "11",
+      "hi": "किसानों को डिजिटल कृषि एप्लिकेशन अपनाने में किन समस्याओं का सामना करना पड़ता है? (एक से अधिक विकल्प चुन सकते हैं)",
+      "en": "What difficulties do farmers face in adopting digital agriculture applications? (Select all that apply)",
+      "as": "ডিজিটেল কৃষি এপ্লিকেশ্যন গ্ৰহণ কৰোঁতে কৃষকসকলে কি অসুবিধাৰ সন্মুখীন হয়? (একাধিক বিকল্প বাছনি কৰিব পাৰে)",
+      "type": "checks"
+    },
+    {
+      "id": "ai_crop",
+      "number": "1",
+      "hi": "फसल अनुशंसा प्रणाली",
+      "en": "Crop Recommendation System",
+      "as": "শস্য পৰামৰ্শ ব্যৱস্থা",
+      "type": "rating"
+    },
+    {
+      "id": "ai_yield",
+      "number": "2",
+      "hi": "फसल उत्पादन पूर्वानुमान",
+      "en": "Crop Yield Prediction",
+      "as": "শস্য উৎপাদনৰ পূৰ্বানুমান",
+      "type": "rating"
+    },
+    {
+      "id": "ai_disease",
+      "number": "3",
+      "hi": "फसल रोग पहचान प्रणाली",
+      "en": "Disease Detection",
+      "as": "শস্যৰ ৰোগ চিনাক্তকৰণ ব্যৱস্থা",
+      "type": "rating"
+    },
+    {
+      "id": "ai_irrigation",
+      "number": "4",
+      "hi": "सिंचाई अनुशंसा प्रणाली",
+      "en": "Irrigation Recommendation",
+      "as": "জলসিঞ্চনৰ পৰামৰ্শ ব্যৱস্থা",
+      "type": "rating"
+    },
+    {
+      "id": "ai_pest_risk",
+      "number": "5",
+      "hi": "कीट एवं रोग जोखिम पूर्वानुमान",
+      "en": "Pest & Disease Risk Forecast",
+      "as": "কীট-পতংগ আৰু ৰোগৰ আশংকাৰ পূৰ্বানুমান",
+      "type": "rating"
+    },
+    {
+      "id": "ai_market",
+      "number": "6",
+      "hi": "बाजार मूल्य पूर्वानुमान",
+      "en": "Market Price Prediction",
+      "as": "বজাৰ মূল্যৰ পূৰ্বানুমান",
+      "type": "rating"
+    },
+    {
+      "id": "ai_cost",
+      "number": "7",
+      "hi": "खेती लागत अनुकूलन प्रणाली",
+      "en": "Cost Optimization Engine",
+      "as": "কৃষি ব্যয় অনুকূলন ব্যৱস্থা",
+      "type": "rating"
+    },
+    {
+      "id": "fpo_top_modules",
+      "number": "13",
+      "hi": "आपके अनुसार खुशहाल किसान के कौन-से तीन मॉड्यूल आपके एफपीओ के किसानों के लिए सबसे अधिक उपयोगी होंगे? (अधिकतम 3 विकल्प चुनें)",
+      "en": "Which three Khushhal Kisan modules would be most useful for farmers in your FPO? (Select up to 3)",
+      "as": "আপোনাৰ মতে খুশহাল কিষাণৰ কোন তিনিটা মডিউল আপোনাৰ FPO-ৰ কৃষকৰ বাবে আটাইতকৈ উপযোগী হ’ব? (সৰ্বাধিক ৩টা বাছনি কৰক)",
+      "type": "checks"
+    },
+    {
+      "id": "fpo_app_interest",
+      "number": "14",
+      "hi": "क्या आपका एफपीओ एआई आधारित किसान सहायता मोबाइल एप्लिकेशन अपनाने में रुचि रखता है?",
+      "en": "Is your FPO interested in adopting an AI-based farmer-support mobile application?",
+      "as": "আপোনাৰ FPO-এ AI-ভিত্তিক কৃষক সহায়ক ম’বাইল এপ গ্ৰহণ কৰিবলৈ আগ্ৰহী নে?",
+      "type": "radio"
+    },
+    {
+      "id": "fpo_support_needed",
+      "number": "15",
+      "hi": "इस एप्लिकेशन को अपने एफपीओ में लागू करने के लिए आपको किस प्रकार की सहायता की आवश्यकता होगी? (एक से अधिक विकल्प चुन सकते हैं)",
+      "en": "What support would you need to implement this application in your FPO? (Select all that apply)",
+      "as": "আপোনাৰ FPO-ত এই এপ্লিকেশ্যন ৰূপায়ণ কৰিবলৈ কেনেধৰণৰ সহায়ৰ প্ৰয়োজন হ’ব? (একাধিক বিকল্প বাছনি কৰিব পাৰে)",
+      "type": "checks"
+    },
+    {
+      "id": "fpo_training_ready",
+      "number": "16",
+      "hi": "क्या आपका एफपीओ खुशहाल किसान के लिए किसानों के बीच जागरूकता एवं प्रशिक्षण कार्यक्रम आयोजित करने के लिए तैयार होगा?",
+      "en": "Would your FPO be willing to organise farmer awareness and training programmes for Khushhal Kisan?",
+      "as": "খুশহাল কিষাণৰ বাবে কৃষকৰ মাজত সজাগতা আৰু প্ৰশিক্ষণ কাৰ্যসূচী আয়োজন কৰিবলৈ আপোনাৰ FPO সাজু হ’বনে?",
+      "type": "radio"
+    },
+    {
+      "id": "fpo_partnership",
+      "number": "17",
+      "hi": "आपका एफपीओ किस प्रकार की साझेदारी करना पसंद करेगा?",
+      "en": "What type of partnership would your FPO prefer?",
+      "as": "আপোনাৰ FPO-এ কেনেধৰণৰ অংশীদাৰিত্ব পছন্দ কৰিব?",
+      "type": "radio"
+    },
+    {
+      "id": "fpo_improvement",
+      "number": "18",
+      "hi": "आपके अनुसार किसानों के लिए कृषि तकनीक में सबसे महत्वपूर्ण सुधार क्या होना चाहिए?",
+      "en": "In your opinion, what is the most important improvement needed in agricultural technology for farmers?",
+      "as": "আপোনাৰ মতে কৃষকৰ বাবে কৃষি প্ৰযুক্তিত আটাইতকৈ গুৰুত্বপূৰ্ণ উন্নতি কি হোৱা উচিত?",
+      "type": "radio"
+    },
+    {
+      "id": "fpo_recommend",
+      "number": "19",
+      "hi": "यदि खुशहाल किसान का पायलट प्रोग्राम सकारात्मक परिणाम देता है, तो क्या आप इसे अन्य एफपीओ के साथ साझा करने की अनुशंसा करेंगे?",
+      "en": "If the Khushhal Kisan pilot programme delivers positive results, would you recommend it to other FPOs?",
+      "as": "খুশহাল কিষাণৰ পাইলট কাৰ্যসূচীয়ে ইতিবাচক ফলাফল দিলে আপুনি ইয়াক আন FPO-সমূহক পৰামৰ্শ দিবনে?",
+      "type": "radio"
+    },
+    {
+      "id": "fpo_followup",
+      "number": "20",
+      "hi": "क्या आप खुशहाल किसान के पायलट प्रोग्राम के संबंध में संपर्क प्राप्त करना चाहेंगे?",
+      "en": "Would you like to be contacted about the Khushhal Kisan pilot programme?",
+      "as": "খুশহাল কিষাণৰ পাইলট কাৰ্যসূচীৰ বিষয়ে আপোনাৰ সৈতে যোগাযোগ কৰাটো বিচাৰেনে?",
+      "type": "radio"
+    },
+    {
+      "id": "email",
+      "number": "21",
+      "hi": "आधिकारिक ईमेल पता (वैकल्पिक)",
+      "en": "Official email address (Optional)",
+      "as": "আধিকাৰিক ইমেইল ঠিকনা (ঐচ্ছিক)",
+      "type": "email"
+    }
+  ]
+}

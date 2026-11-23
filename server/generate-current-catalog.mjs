@@ -80,3 +80,21 @@ console.log('Total catalog entries:', rows.length);
 console.log('Farmer:', rows.filter(r => r.type === 'farmer').length);
 console.log('Stakeholder:', rows.filter(r => r.type === 'stakeholder').length);
 console.log('File: server/migrations/003_current_question_catalog.sql');
+
+// Also generate the JSON catalog required by the six-sheet Excel export.
+const jsonCatalog = {
+  farmer: rows.filter(r => r.type === 'farmer').map(({ id, number, hi, en, as, answerType }) => ({
+    id, number, hi, en, as, type: answerType
+  })),
+  stakeholder: rows.filter(r => r.type === 'stakeholder').map(({ id, number, hi, en, as, answerType }) => ({
+    id, number, hi, en, as, type: answerType
+  }))
+};
+
+await writeFile(
+  new URL('./config/question-catalog.json', import.meta.url),
+  JSON.stringify(jsonCatalog, null, 2) + '\n',
+  'utf8'
+);
+
+console.log('Excel JSON catalog generated successfully.');
