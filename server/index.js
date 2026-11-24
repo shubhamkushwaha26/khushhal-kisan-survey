@@ -1243,6 +1243,41 @@ app.post('/api/surveys/draft', async (req, res) => {
       });
     }
 
+    // Prevent a draft key from being reused for another survey identity.
+    const draftOwnerResult = await client.query(
+      `SELECT status, survey_type,
+              COALESCE(survey_version, 'legacy') AS survey_version,
+              RIGHT(REGEXP_REPLACE(
+                COALESCE(NULLIF(BTRIM(mobile), ''),
+                         NULLIF(BTRIM(answers->>'mobile'), ''), ''),
+                '[^0-9]', '', 'g'), 10) AS normalized_mobile,
+              LOWER(BTRIM(COALESCE(
+                NULLIF(BTRIM(name), ''),
+                NULLIF(BTRIM(answers->>'name'), ''),
+                NULLIF(BTRIM(answers->>'contact_person'), ''),
+                NULLIF(BTRIM(answers->>'fpo_name'), ''),
+                ''
+              ))) AS normalized_name
+         FROM survey_responses
+        WHERE draft_key = $1
+        FOR UPDATE`,
+      [draftKey]
+    );
+
+    const draftOwner = draftOwnerResult.rows[0];
+
+    if (draftOwner && (
+      draftOwner.normalized_mobile !== draftMobile ||
+      draftOwner.survey_type !== surveyType ||
+      draftOwner.survey_version !== surveyVersion ||
+      draftOwner.normalized_name !== answers.name.toLowerCase().trim()
+    )) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        error: 'This draft key belongs to a different survey identity.'
+      });
+    }
+
     // Reuse the same response ID for every autosave of this draft.
     // This prevents the serial sequence from skipping a number on each keystroke.
     const existingDraft = await client.query(
@@ -1446,41 +1481,137 @@ app.post('/api/surveys', async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'A valid 10-digit Indian mobile number is required.' });
     }
-    const mobileOwner = await lockAndCheckMobile(client, normalizedMobile, draftKey || null);
-    if (mobileOwner) {
+    // Lock this mobile number while reconciling drafts and submissions.
+    await client.query(
+      'SELECT pg_advisory_xact_lock(hashtext($1))',
+      [normalizedMobile]
+    );
+
+    const normalizedName = answers.name.toLowerCase().trim();
+
+    // Verify draft-key ownership globally, not only among this mobile's records.
+    let draftKeyRecord = null;
+
+    if (draftKey) {
+      const draftKeyResult = await client.query(
+        `SELECT id, response_id, status, survey_type,
+                COALESCE(survey_version, 'legacy') AS survey_version,
+                draft_key, submitted_at,
+                RIGHT(REGEXP_REPLACE(
+                  COALESCE(NULLIF(BTRIM(mobile), ''),
+                           NULLIF(BTRIM(answers->>'mobile'), ''), ''),
+                  '[^0-9]', '', 'g'), 10) AS normalized_mobile,
+                LOWER(BTRIM(COALESCE(
+                  NULLIF(BTRIM(name), ''),
+                  NULLIF(BTRIM(answers->>'name'), ''),
+                  NULLIF(BTRIM(answers->>'contact_person'), ''),
+                  NULLIF(BTRIM(answers->>'fpo_name'), ''),
+                  ''
+                ))) AS normalized_name
+           FROM survey_responses
+          WHERE draft_key = $1
+          FOR UPDATE`,
+        [draftKey]
+      );
+
+      draftKeyRecord = draftKeyResult.rows[0] || null;
+
+      if (draftKeyRecord && (
+        draftKeyRecord.normalized_mobile !== normalizedMobile ||
+        draftKeyRecord.survey_type !== surveyType ||
+        draftKeyRecord.survey_version !== 'new' ||
+        draftKeyRecord.normalized_name !== normalizedName
+      )) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({
+          error: 'This draft belongs to a different survey identity.'
+        });
+      }
+    }
+
+    const mobileRowsResult = await client.query(
+      `SELECT id, response_id, status, survey_type, survey_version,
+              draft_key, submitted_at,
+              LOWER(BTRIM(COALESCE(
+                NULLIF(BTRIM(name), ''),
+                NULLIF(BTRIM(answers->>'name'), ''),
+                NULLIF(BTRIM(answers->>'contact_person'), ''),
+                NULLIF(BTRIM(answers->>'fpo_name'), ''),
+                ''
+              ))) AS normalized_name
+         FROM survey_responses
+        WHERE RIGHT(REGEXP_REPLACE(
+                COALESCE(NULLIF(BTRIM(mobile), ''),
+                         NULLIF(BTRIM(answers->>'mobile'), ''), ''),
+                '[^0-9]', '', 'g'), 10) = $1
+          AND status IN ('draft', 'completed')
+        ORDER BY updated_at DESC, id DESC
+        FOR UPDATE`,
+      [normalizedMobile]
+    );
+
+    const mobileRows = mobileRowsResult.rows;
+
+    const identityMatches = row =>
+      row.survey_type === surveyType &&
+      row.survey_version === 'new' &&
+      row.normalized_name === normalizedName;
+
+
+
+    // Do not allow a draft key to be reused for another identity.
+    if (draftKeyRecord && !identityMatches(draftKeyRecord)) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        error: 'This draft belongs to a different survey identity.'
+      });
+    }
+
+    const completedMatch = mobileRows.find(
+      row => row.status === 'completed' && identityMatches(row)
+    );
+
+    const matchingDrafts = mobileRows.filter(
+      row => row.status === 'draft' && identityMatches(row)
+    );
+
+    // A matching completed survey already exists: archive only its duplicate drafts.
+    if (completedMatch) {
+      for (const row of matchingDrafts) {
+        await client.query(
+          `UPDATE survey_responses
+              SET status = 'superseded', updated_at = NOW()
+            WHERE id = $1 AND status = 'draft'`,
+          [row.id]
+        );
+      }
+
+      await client.query('COMMIT');
+      return res.json({
+        success: true,
+        responseId: completedMatch.response_id,
+        submittedAt: completedMatch.submitted_at,
+        message: 'Survey was already submitted.'
+      });
+    }
+
+    // Any other active identity using this mobile number remains blocked.
+    const unrelatedOwner = mobileRows.find(row => !identityMatches(row));
+
+    if (unrelatedOwner) {
       await client.query('ROLLBACK');
       return res.status(409).json({
         error: 'This mobile number is already registered. One mobile number can be used only once.'
       });
     }
 
-    // Check for an existing draft or completed submission.
-    let existing = null;
+    // Reuse the matching draft even if it was created with another browser's draft key.
+    const existing =
+      matchingDrafts.find(row => row.draft_key === draftKey) ||
+      matchingDrafts[0] ||
+      null;
 
-    if (draftKey) {
-      const result = await client.query(
-        `SELECT id, response_id, status, submitted_at
-         FROM survey_responses
-         WHERE draft_key = $1
-         FOR UPDATE`,
-        [draftKey]
-      );
-
-      existing = result.rows[0] || null;
-    }
-
-    // Do not create another Farmer ID on a retry.
-    if (existing && existing.status === 'completed') {
-      await client.query('COMMIT');
-
-      return res.json({
-        success: true,
-        responseId: existing.response_id,
-        submittedAt: existing.submitted_at,
-        message: 'Survey was already submitted.'
-      });
-    }
-
+    const effectiveDraftKey = existing?.draft_key || draftKey || null;
     // Generate a Farmer record only for a new farmer submission.
     let farmerRecord = null;
 
@@ -1490,6 +1621,7 @@ app.post('/api/surveys', async (req, res) => {
 
     if (existing && existing.status === 'draft') {
       const assignments = [
+        'draft_key = COALESCE(draft_key, $1)',
         'survey_type = $2',
         "survey_version = 'new'",
         'response_id = $6',
@@ -1503,7 +1635,7 @@ app.post('/api/surveys', async (req, res) => {
       ];
 
       const values = [
-        draftKey,
+        effectiveDraftKey,
         surveyType,
         language,
         JSON.stringify(answers),
@@ -1514,15 +1646,15 @@ app.post('/api/surveys', async (req, res) => {
 
       assignments.push('farmer_id = $5');
 
-      const questionAssignments = buildQuestionUpdate(answers, 8);
+      const questionAssignments = buildQuestionUpdate(answers, 9);
 
       assignments.push(...questionAssignments.assignments);
-      values.push(...questionAssignments.values);
+      values.push(existing.id, ...questionAssignments.values);
 
       const updated = await client.query(
         `UPDATE survey_responses
          SET ${assignments.join(', ')}
-         WHERE draft_key = $1
+         WHERE id = $8
            AND status = 'draft'
          RETURNING id, response_id, submitted_at`,
         values
@@ -1530,6 +1662,19 @@ app.post('/api/surveys', async (req, res) => {
 
       if (updated.rowCount) {
         await syncSurveyAnswerRows(client, updated.rows[0].id, surveyType, answers);
+
+        // Archive any other duplicate drafts for this exact identity.
+        for (const duplicateDraft of matchingDrafts) {
+          if (duplicateDraft.id === existing.id) continue;
+
+          await client.query(
+            `UPDATE survey_responses
+                SET status = 'superseded', updated_at = NOW()
+              WHERE id = $1 AND status = 'draft'`,
+            [duplicateDraft.id]
+          );
+        }
+
         await client.query('COMMIT');
 
         return res.json({
@@ -1614,20 +1759,48 @@ app.post('/api/surveys', async (req, res) => {
 
     if (!inserted.rowCount && draftKey) {
       const completed = await client.query(
-        `SELECT response_id, submitted_at, status
-         FROM survey_responses
-         WHERE draft_key = $1
-         FOR UPDATE`,
+        `SELECT response_id, submitted_at, status, survey_type,
+                COALESCE(survey_version, 'legacy') AS survey_version,
+                RIGHT(REGEXP_REPLACE(
+                  COALESCE(NULLIF(BTRIM(mobile), ''),
+                           NULLIF(BTRIM(answers->>'mobile'), ''), ''),
+                  '[^0-9]', '', 'g'), 10) AS normalized_mobile,
+                LOWER(BTRIM(COALESCE(
+                  NULLIF(BTRIM(name), ''),
+                  NULLIF(BTRIM(answers->>'name'), ''),
+                  NULLIF(BTRIM(answers->>'contact_person'), ''),
+                  NULLIF(BTRIM(answers->>'fpo_name'), ''),
+                  ''
+                ))) AS normalized_name
+           FROM survey_responses
+          WHERE draft_key = $1
+          FOR UPDATE`,
         [draftKey]
       );
 
-      await client.query('COMMIT');
+      const alreadyCompleted = completed.rows[0];
 
-      return res.json({
-        success: true,
-        responseId: completed.rows[0]?.response_id,
-        submittedAt: completed.rows[0]?.submitted_at,
-        message: 'Survey was already submitted.'
+      if (
+        alreadyCompleted?.status === 'completed' &&
+        alreadyCompleted.normalized_mobile === normalizedMobile &&
+        alreadyCompleted.survey_type === surveyType &&
+        alreadyCompleted.survey_version === 'new' &&
+        alreadyCompleted.normalized_name === normalizedName
+      ) {
+        // Roll back this retry's newly-created Farmer record, if any.
+        await client.query('ROLLBACK');
+
+        return res.json({
+          success: true,
+          responseId: alreadyCompleted.response_id,
+          submittedAt: alreadyCompleted.submitted_at,
+          message: 'Survey was already submitted.'
+        });
+      }
+
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        error: 'This draft key is already in use. Please refresh and try again.'
       });
     }
 
