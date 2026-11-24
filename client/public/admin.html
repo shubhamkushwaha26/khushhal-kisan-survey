@@ -59,7 +59,6 @@
 </div>
 <button class="secondary" onclick="loadRecords()" data-en='Refresh'>Refresh</button>
 <button onclick="downloadExcel()" data-en='Download All 6 Sheets'>Download All 6 Sheets</button>
-<button class="secondary" onclick="downloadPendingExcel()" data-en='Download Pending Drafts'>Download Pending Drafts</button>
 <button class="secondary" onclick="logout()" data-en='Logout'>Logout</button>
 <p id="status"></p>
 </div>
@@ -214,10 +213,7 @@ const translations={
     "????? FPO ?????",
     "???? FPO ???????"
   ],
-  "Total Pending": [
-    "??? ????? ?????",
-    "??? ???? ???????"
-  ],
+  "Total Pending": ["Total Pending Surveys","Total Pending Surveys"],
   "Pending Enquiries": [
     "????? ??????",
     "???? ?????????"
@@ -258,7 +254,7 @@ const translations={
   "New Version Surveys": ["?? ?????", "???? ???????"],
   "Historical Surveys": ["?????? ?????", "????? ???????"],
   "Survey ID": ["????? ????", "???????? ID"],
-  "Pending ID": ["????? ????", "???? ID"],
+  "Pending ID": ["Pending ID","Pending ID"],
   "Questionnaire Version": ["?????????? ???????", "??????????? ???????"],
   "All six sheets downloaded successfully.": ["????? ??? ??????????? ??????? ?? ????", "??????? ????? ??????? ??????? ?????"],
   "Logout": [
@@ -401,10 +397,7 @@ const translations={
     "???? ???",
     "????????"
   ],
-  "draft": [
-    "?????",
-    "?????"
-  ],
+  "draft": ["Pending","Pending"],
   "farmer": [
     "?????",
     "????"
@@ -609,7 +602,7 @@ const translations={
   'farmer':['\u0915\u093f\u0938\u093e\u0928','\u0995\u09c3\u09b7\u0995'],
   'stakeholder':['FPO','FPO'],
   'completed':['\u091c\u092e\u093e \u0939\u0941\u0906','\u09b8\u09ae\u09cd\u09aa\u09c2\u09f0\u09cd\u09a3'],
-  'draft':['\u0905\u0927\u0942\u0930\u093e','\u09ac\u09be\u0995\u09c0'],
+  'draft':["Pending","Pending"],
   'Pending FPO':['????? FPO ?????','???? FPO ???????'],
   'new':['???','????'],
   'legacy':['??????','?????']
@@ -623,13 +616,12 @@ Object.assign(translations,{
  "FPO Surveys":["FPO à¤¸à¤°à¥à¤µà¥‡","FPO à¦¸à¦®à§€à¦•à§à¦·à¦¾"],
  "Pending Farmer":["à¤…à¤§à¥‚à¤°à¥‡ à¤•à¤¿à¤¸à¤¾à¤¨ à¤¸à¤°à¥à¤µà¥‡","à¦…à¦¸à¦®à§à¦ªà§‚à§°à§à¦£ à¦•à§ƒà¦·à¦• à¦¸à¦®à§€à¦•à§à¦·à¦¾"],
  "Pending FPO":["à¤…à¤§à¥‚à¤°à¥‡ FPO à¤¸à¤°à¥à¤µà¥‡","à¦…à¦¸à¦®à§à¦ªà§‚à§°à§à¦£ FPO à¦¸à¦®à§€à¦•à§à¦·à¦¾"],
- "Total Pending":["à¤•à¥à¤² à¤…à¤§à¥‚à¤°à¥‡ à¤¡à¥à¤°à¤¾à¤«à¥à¤Ÿ","à¦®à§à¦  à¦…à¦¸à¦®à§à¦ªà§‚à§°à§à¦£ à¦–à¦šà§°à¦¾"],
+ "Total Pending":["Total Pending Surveys","Total Pending Surveys"],
  "Download All 6 Sheets":["à¤¸à¤­à¥€ à¤ªà¥à¤°à¤¾à¤¨à¥‡ à¤”à¤° à¤¨à¤ à¤¸à¤°à¥à¤µà¥‡ à¤¡à¤¾à¤‰à¤¨à¤²à¥‹à¤¡ à¤•à¤°à¥‡à¤‚","à¦¸à¦•à¦²à§‹ à¦ªà§à§°à¦£à¦¿ à¦†à§°à§ à¦¨à¦¤à§à¦¨ à¦¸à¦®à§€à¦•à§à¦·à¦¾ à¦¡à¦¾à¦‰à¦¨à¦²à§‹à¦¡ à¦•à§°à¦•"],
- "Download Pending Drafts":["à¤…à¤§à¥‚à¤°à¥‡ à¤¡à¥à¤°à¤¾à¤«à¥à¤Ÿ à¤¡à¤¾à¤‰à¤¨à¤²à¥‹à¤¡ à¤•à¤°à¥‡à¤‚","à¦…à¦¸à¦®à§à¦ªà§‚à§°à§à¦£ à¦–à¦šà§°à¦¾ à¦¡à¦¾à¦‰à¦¨à¦²à§‹à¦¡ à¦•à§°à¦•"],
  "New Version Surveys":["à¤¨à¤ à¤¸à¤°à¥à¤µà¥‡","à¦¨à¦¤à§à¦¨ à¦¸à¦®à§€à¦•à§à¦·à¦¾"],
  "Historical Surveys":["à¤ªà¥à¤°à¤¾à¤¨à¥‡ à¤¸à¤°à¥à¤µà¥‡","à¦ªà§à§°à¦£à¦¿ à¦¸à¦®à§€à¦•à§à¦·à¦¾"],
  "Survey ID":["à¤¸à¤°à¥à¤µà¥‡ à¤†à¤ˆà¤¡à¥€","à¦¸à¦®à§€à¦•à§à¦·à¦¾ ID"],
- "Pending ID":["à¤¡à¥à¤°à¤¾à¤«à¥à¤Ÿ à¤†à¤ˆà¤¡à¥€","à¦–à¦šà§°à¦¾ ID"],
+ "Pending ID":["Pending ID","Pending ID"],
  "View Details":["à¤ªà¥‚à¤°à¥€ à¤œà¤¾à¤¨à¤•à¤¾à¤°à¥€ à¤¦à¥‡à¤–à¥‡à¤‚","à¦¸à¦®à§à¦ªà§‚à§°à§à¦£ à¦¬à¦¿à§±à§°à¦£ à¦šà¦¾à¦“à¦•"],
  "Close":["à¤¬à¤‚à¤¦ à¤•à¤°à¥‡à¤‚","à¦¬à¦¨à§à¦§ à¦•à§°à¦•"],
  "Name":["à¤¨à¤¾à¤®","à¦¨à¦¾à¦®"],
@@ -661,7 +653,7 @@ Object.assign(translations,{
  "Previous":["à¤ªà¤¿à¤›à¤²à¤¾","à¦†à¦—à§°"],
  "Next":["à¤…à¤—à¤²à¤¾","à¦ªà§°à§±à§°à§à¦¤à§€"],
  "completed":["à¤œà¤®à¤¾ à¤•à¤¿à¤¯à¤¾ à¤—à¤¯à¤¾","à¦¸à¦®à§à¦ªà§‚à§°à§à¦£"],
- "draft":["à¤…à¤§à¥‚à¤°à¤¾ à¤¡à¥à¤°à¤¾à¤«à¥à¤Ÿ","à¦…à¦¸à¦®à§à¦ªà§‚à§°à§à¦£ à¦–à¦šà§°à¦¾"],
+ "draft":["Pending","Pending"],
  "farmer":["à¤•à¤¿à¤¸à¤¾à¤¨","à¦•à§ƒà¦·à¦•"],
  "stakeholder":["FPO","FPO"],
  "new":["à¤¨à¤¯à¤¾","à¦¨à¦¤à§à¦¨"],
@@ -725,9 +717,8 @@ const safeTranslations = {
  "FPO Surveys":["FPO सर्वे","FPO সমীক্ষা"],
  "Pending Farmer":["अधूरे किसान सर्वे","অসম্পূৰ্ণ কৃষক সমীক্ষা"],
  "Pending FPO":["अधूरे FPO सर्वे","অসম্পূৰ্ণ FPO সমীক্ষা"],
- "Total Pending":["कुल अधूरे ड्राफ्ट","মুঠ অসম্পূৰ্ণ খচৰা"],
+ "Total Pending":["Total Pending Surveys","Total Pending Surveys"],
  "Download All 6 Sheets":["सभी 6 शीट डाउनलोड करें","সকলো ৬খন শ্বীট ডাউনলোড কৰক"],
- "Download Pending Drafts":["अधूरे ड्राफ्ट डाउनलोड करें","অসম্পূৰ্ণ খচৰা ডাউনলোড কৰক"],
  "Refresh":["रिफ्रेश करें","সতেজ কৰক"],
  "Logout":["लॉगआउट","লগআউট"],
  "View Details":["पूरी जानकारी देखें","সম্পূৰ্ণ বিৱৰণ চাওক"],
@@ -736,7 +727,7 @@ const safeTranslations = {
  "Mobile":["मोबाइल","ম'বাইল"],
  "Type":["प्रकार","ধৰণ"],
  "Survey ID":["सर्वे आईडी","সমীক্ষা ID"],
- "Pending ID":["ड्राफ्ट आईडी","খচৰা ID"],
+ "Pending ID":["Pending ID","Pending ID"],
  "Invalid username or password.":["यूज़रनेम या पासवर्ड गलत है।","ব্যৱহাৰকাৰীৰ নাম বা পাছৱৰ্ড ভুল।"],
  "Logging in...":["लॉगिन हो रहा है...","লগইন হৈ আছে..."]
 };
@@ -1085,23 +1076,6 @@ async function downloadExcel(){
     setMessage(err.message);
   }
 }
-
-async function downloadPendingExcel(){
-  setMessage(t('Preparing Excel...'));
-  try{
-    const r=await fetch(API+'/api/admin/export-pending-excel',{headers:{Authorization:'Bearer '+token}});
-    if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||'Pending Excel export failed');}
-    const blob=await r.blob();
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;
-    a.download='Khushhal_Kisan_Pending_Drafts.xlsx';
-    document.body.append(a);a.click();a.remove();
-    URL.revokeObjectURL(url);
-    setMessage(t('Pending drafts downloaded successfully.'),true);
-  }catch(err){setMessage(err.message);}
-}
-
 
 const STAFF_PERMISSION_KEYS = ['farmer','stakeholder','newData','oldData','pendingFarmer','pendingStakeholder'];
 const STAFF_PERMISSION_LABELS = {
