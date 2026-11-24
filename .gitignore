@@ -34,3 +34,9 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Database dumps and local backups
+*.dump
+*.backup
+*.backup-*
+server/backups/
