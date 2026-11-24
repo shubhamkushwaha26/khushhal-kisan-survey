@@ -2,7 +2,7 @@ import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {Sprout,Languages,CheckCircle2,ShieldCheck,UploadCloud,Leaf,ArrowRight,LoaderCircle} from 'lucide-react';
 import './styles.css';
-import {QUESTIONNAIRES,LANGS,TEXT,RATING_GUIDE} from './questionnaire';
+import {QUESTIONNAIRES,LANGS,TEXT} from './questionnaire';
 
 const API=(import.meta.env.VITE_API_URL||'').replace(/\/$/,'');
 const emptyDraft=()=>({});
@@ -11,8 +11,21 @@ const mobileDigits=v=>String(v||'').replace(/\D/g,'').replace(/^91(?=\d{10}$)/,'
 const getFieldLabel=(q,lang)=>q[lang]||q.hi;
 const getOptionValue=o=>o.en;
 const getOptionLabel=(o,lang)=>o[lang]||o.hi;
+const toInternational = value => {
+ const digits=String(value||'').replace(/\D/g,'');
+ return digits.startsWith('91')?digits:digits.length===10?'91'+digits:digits;
+};
 
 function App(){
+ const [support,setSupport]=useState(null);
+ useEffect(()=>{
+   let alive=true;
+   fetch(`${API}/api/support`)
+     .then(r=>r.ok?r.json():null)
+     .then(data=>{if(alive&&data?.settings?.active)setSupport(data.settings);})
+     .catch(()=>{});
+   return()=>{alive=false;};
+ },[]);
  const [lang,setLang]=useState('hi');
  const [languageChosen,setLanguageChosen]=useState(false);
  const [type,setType]=useState('farmer');
@@ -85,6 +98,11 @@ function App(){
        const r=await fetch(`${API}/api/surveys/draft/lookup`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,mobile,surveyType:type,surveyVersion:'new'})});
        if(!r.ok)return;
        const data=await r.json();
+       if(data.alreadyRegistered){
+         setError('This mobile number is already registered. One mobile number can be used only once.');
+         setNotice('');
+         return;
+       }
        if(data.draft?.draft_key){
          isRestoring.current=true;
          setDraftKey(data.draft.draft_key);
@@ -177,7 +195,7 @@ function App(){
      if(!r.ok)throw new Error(data.error||data.message||t.error);
      setReceipt(data);setNotice('');
      localStorage.removeItem(`kk-new-local-${type}`);
-   }catch(e){console.warn('Survey submission failed',e);setError(t.error);}finally{setBusy(false);}
+   }catch(e){console.warn('Survey submission failed',e);setError(e.message||t.error);}finally{setBusy(false);}
  };
  const optionToggle=(q,value)=>{
    const old=Array.isArray(answers[q.id])?answers[q.id]:[];
@@ -236,13 +254,27 @@ function App(){
     <div className="section-heading"><div className="section-kicker">{t.section} {si+1}</div><h2>{section.title[lang]||section.title.hi}</h2>
      {section.intro&&<div className={section.mainQuestionNumber?'section-main-question':'section-intro'}>{section.mainQuestionNumber&&<strong>{lang==='en'?'Question':lang==='as'?'প্ৰশ্ন':'प्रश्न'} {section.mainQuestionNumber}.</strong>}<p>{section.intro[lang]||section.intro.hi}</p></div>}
     </div>
-    {section.id==='ai'&&<div className="rating-guide"><div className="rating-guide-title">{t.ratingGuide}</div><div className="rating-guide-grid">{RATING_GUIDE.map(item=><div className="rating-guide-item" key={item.value}><span className="rating-guide-stars">{item.stars}</span><b>{item.value}</b><small>{item[lang]||item.hi}</small></div>)}</div></div>}
     <div className="question-grid">{section.questions.filter(item=>!section.questions.some(parent=>parent.groupChildren?.includes(item.id))).map(renderQuestion)}</div>
    </section>)}</div>
    <div className="submit-panel"><label className="consent-row"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/><span>{t.consent}</span></label>{error&&<div className="error-msg" role="alert">{error}</div>}<div className="submit-bottom"><div className="save-note"><ShieldCheck size={17}/><span>{saveMessage}</span></div><button className="primary-button submit-button" disabled={busy} onClick={submit}>{busy?<><LoaderCircle className="spin" size={18}/>{t.submitting}</>:<>{t.submit}<ArrowRight size={17}/></>}</button></div></div>
   </div>
  </div>
- </main><footer className="site-footer"><div><Sprout size={19}/><b>Khushhal Kisan</b></div><span>{lang==='en'?'A farmer-first support platform · Uttar Pradesh, India':lang==='as'?'কৃষক-কেন্দ্ৰিক সহায়ক মঞ্চ · উত্তৰ প্ৰদেশ, ভাৰত':'किसान-केंद्रित सहायता प्लेटफॉर्म · उत्तर प्रदेश, भारत'}</span><small>© {new Date().getFullYear()} AIVIRINCHI</small></footer></div>;
+ </main>{support?.active && <section className="farmer-support-widget" aria-label="Farmer customer support">
+ <div className="farmer-support-heading">
+  <ShieldCheck size={21}/>
+  <div>
+   <strong>{lang==='en'?'Farmer Customer Support':lang==='as'?'কৃষক সহায়তা':'किसान सहायता'}</strong>
+   <small>{lang==='en'?'We are here to help':lang==='as'?'আমি সহায় কৰিবলৈ আছোঁ':'हम आपकी सहायता के लिए उपलब्ध हैं'}</small>
+  </div>
+ </div>
+ <div className="farmer-support-actions">
+  {support.call_number && <a className="farmer-support-call" href={`tel:+${toInternational(support.call_number)}`}>{lang==='en'?'Call Now':lang==='as'?'কল কৰক':'कॉल करें'}</a>}
+  {support.whatsapp_number && <a className="farmer-support-whatsapp" href={`https://wa.me/${toInternational(support.whatsapp_number)}`} target="_blank" rel="noopener noreferrer">{lang==='en'?'WhatsApp':lang==='as'?'হোৱাটছএপ':'WhatsApp'}</a>}
+ </div>
+ <small className="farmer-support-hours">
+  {lang==='en'?'Available':lang==='as'?'উপলব্ধ সময়':'उपलब्ध समय'}: {support.available_from} – {support.available_to}
+ </small>
+</section>}<footer className="site-footer"><div><Sprout size={19}/><b>Khushhal Kisan</b></div><span>{lang==='en'?'A farmer-first support platform · Uttar Pradesh, India':lang==='as'?'কৃষক-কেন্দ্ৰিক সহায়ক মঞ্চ · উত্তৰ প্ৰদেশ, ভাৰত':'किसान-केंद्रित सहायता प्लेटफॉर्म · उत्तर प्रदेश, भारत'}</span><small>© {new Date().getFullYear()} AIVIRINCHI</small></footer></div>;
 }
 
 createRoot(document.getElementById('root')).render(<App/>);

@@ -7,13 +7,13 @@ export function isValidPendingRow(row) {
   return Boolean(name && /^[6-9]\d{9}$/.test(digits));
 }
 
-export async function createSixSheetWorkbook({ localRows = [], legacyRows = [], currentCatalog = {}, legacyQuestionLabels = {} }) {
+export async function createSixSheetWorkbook({ localRows = [], legacyRows = [], currentCatalog = {}, legacyQuestionLabels = {}, legacyUnavailable = false }) {
   const completed = localRows.filter(row => row.status === 'completed' && (row.survey_version || 'new') === 'new');
   const pending = localRows.filter(row => row.status === 'draft' && (row.survey_version || 'new') === 'new' && isValidPendingRow(row));
   const legacySubmitted = legacyRows.filter(row => row.status === 'completed');
   const legacyKeys = {
-    farmer: ['age','land','name','crops','email','pilot','mobile','appsUsed','infoGaps','language','location','useIntent','experience','seasonCost','smartphone','infoSources','topProblems','digitalNeeds','paymentModel','trustFactors','financialLoss','landOwnership','whatsappGroup','photoDiagnosis','digitalBarriers','seriousProblems','willingnessToPay','diseaseExperience','paymentConditions','recommend','firstProblem','paidServices','recentProblem','timelyBenefit','trustEvidence','referral'],
-    stakeholder: ['name','email','mobile','sponsorship','digitalTools','adoptionNeeds','valueCreation','whatsappGroup','pilotReadiness','guidanceProcess','stakeholderLoss','farmersSupported','stakeholderProblems']
+    farmer: ['age','land','name','crops','email','pilot','mobile','appsUsed','infoGaps','language','location','useIntent','experience','seasonCost','smartphone','infoSources','topProblems','digitalNeeds','paymentModel','trustFactors','financialLoss','landOwnership','whatsappGroup','photoDiagnosis','digitalBarriers','seriousProblems','willingnessToPay','diseaseExperience','paymentConditions','recommend','firstProblem','paidServices','recentProblem','timelyBenefit','trustEvidence','referral','khushhal_app_useful'],
+    stakeholder: ['name','email','mobile','sponsorship','digitalTools','adoptionNeeds','valueCreation','whatsappGroup','pilotReadiness','guidanceProcess','stakeholderLoss','farmersSupported','stakeholderProblems','khushhal_app_useful']
   };
   const currentKeys = {
     farmer: (currentCatalog.farmer || []).map(question => question.id),
@@ -31,6 +31,10 @@ export async function createSixSheetWorkbook({ localRows = [], legacyRows = [], 
     if (old) {
       return `${old.question_text_hi || ''} | ${old.question_text_en || ''} | ${old.question_text_as || ''}`
         .replace(/^\s*\|\s*|\s*\|\s*$/g, '');
+    }
+    if (key === 'khushhal_app_useful') {
+      const question = (currentCatalog[type] || []).find(item => item.id === key);
+      return String(question?.en || 'Khushhal Kisan App Usefulness').trim();
     }
 
     return key;
@@ -60,6 +64,10 @@ export async function createSixSheetWorkbook({ localRows = [], legacyRows = [], 
     header.font = { bold: true, color: { argb: 'FFFFFFFF' } };
     header.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF245A3A' } };
     header.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+    if (config.version === 'legacy' && legacyUnavailable) {
+      const note = sheet.addRow(['Historical Neon data unavailable. This sheet contains no historical records in this export.']);
+      note.font = { italic: true, color: { argb: 'FF9C0006' } };
+    }
     for (const row of config.rows) {
       let answers = row.answers || {};
       if (typeof answers === 'string') { try { answers = JSON.parse(answers); } catch { answers = {}; } }

@@ -74,7 +74,7 @@ const legacyUrl = process.env.LEGACY_DATABASE_URL
   : null;
 
 // Neon is always connected using explicit verified TLS and read-only startup options.
-const legacyPool = legacyUrl
+let legacyPool = legacyUrl
   ? new Pool({
       host: legacyUrl.hostname,
       port: Number(legacyUrl.port || 5432),
@@ -94,6 +94,15 @@ const legacyPool = legacyUrl
 // QUESTION COLUMN MAPPING
 // Column names must match server/schema.sql exactly.
 // --------------------------------------------------
+
+// Prevent idle PostgreSQL connection resets from crashing the API.
+pool?.on('error', (error) => {
+  console.error('[NEW DB] Connection pool error:', error.message);
+});
+
+legacyPool?.on('error', (error) => {
+  console.error('[LEGACY DB] Read-only connection pool error:', error.message);
+});
 
 const QUESTION_COLUMNS = {
   name: 'name',
@@ -176,6 +185,7 @@ const QUESTION_COLUMNS = {
   desired_selling_solution: 'desired_selling_solution',
   crop_residue: 'crop_residue',
   mobile_solution: 'mobile_solution',
+  khushhal_app_useful: 'khushhal_app_useful',
   ai_crop: 'ai_crop',
   ai_yield: 'ai_yield',
   ai_disease: 'ai_disease',
@@ -213,6 +223,44 @@ const QUESTION_COLUMNS = {
   fpo_crops_other: 'fpo_crops_other'
 };
 
+// Historical rating answers are represented by one usefulness response in
+// the current questionnaire. Legacy Neon is read-only, so this helper maps
+// those records at read/export time without writing to the legacy database.
+const LEGACY_AI_RATING_KEYS = [
+  'ai_crop', 'ai_yield', 'ai_disease', 'ai_irrigation',
+  'ai_pest_risk', 'ai_market', 'ai_cost'
+];
+
+function normalizeHistoricalUsefulness(answers) {
+  const normalized = answers && typeof answers === 'object' && !Array.isArray(answers)
+    ? { ...answers }
+    : {};
+  const hadOldRating = LEGACY_AI_RATING_KEYS.some(key =>
+    normalized[key] !== undefined &&
+    normalized[key] !== null &&
+    String(normalized[key]).trim() !== ''
+  );
+  if (!normalized.khushhal_app_useful && hadOldRating) {
+    normalized.khushhal_app_useful = 'Yes';
+  }
+  for (const key of LEGACY_AI_RATING_KEYS) delete normalized[key];
+  return normalized;
+}
+
+function normalizedAnswersFromRow(row) {
+  let answers = row?.answers || {};
+  if (typeof answers === 'string') {
+    try { answers = JSON.parse(answers); } catch { answers = {}; }
+  }
+  if (!answers || typeof answers !== 'object' || Array.isArray(answers)) answers = {};
+  for (const key of LEGACY_AI_RATING_KEYS) {
+    if (answers[key] === undefined && row?.[key] !== undefined && row?.[key] !== null) {
+      answers[key] = row[key];
+    }
+  }
+  return normalizeHistoricalUsefulness(answers);
+}
+
 // These columns are JSONB in the question-wise schema.
 const JSONB_QUESTION_KEYS = new Set([
   'seriousProblems',
@@ -246,7 +294,8 @@ const JSONB_QUESTION_KEYS = new Set([
 // are never rewritten by this release.
 async function createPendingId(db = pool) {
   const result = await db.query(`
-    SELECT 'EKK-' || LPAD(nextval('public.survey_pending_new_code_seq')::TEXT, 6, '0') AS response_id
+    SELECT (SELECT 'EKK-' || LPAD(n::TEXT, GREATEST(6, LENGTH(n::TEXT)), '0')
+     FROM (SELECT nextval('public.survey_pending_new_code_seq') AS n) seq) AS response_id
   `);
   return result.rows[0].response_id;
 }
@@ -255,7 +304,8 @@ async function createResponseId(db = pool) {
   // One shared sequence across Farmer and FPO: AKK-00001, AKK-00002, ...
   // Historical KK/EKK identifiers remain unchanged.
   const result = await db.query(
-    `SELECT 'AKK-' || LPAD(nextval('public.survey_akk_code_seq')::TEXT, 5, '0') AS response_id`
+    `SELECT (SELECT 'AKK-' || LPAD(n::TEXT, GREATEST(5, LENGTH(n::TEXT)), '0')
+     FROM (SELECT nextval('public.survey_akk_code_seq') AS n) seq) AS response_id`
   );
   return result.rows[0].response_id;
 }
@@ -315,14 +365,14 @@ const NEW_ANSWER_KEYS = {
     'soil_test_method','soil_report_photo','fertilizer_quantity','fertilizer_type','fertilizer_type_other',
     'culture_treatment','farming_system','pest_attack','recent_crop_name','recent_disease_name',
     'disease_photo','disease_treatment','sell_where','selling_problems','desired_selling_solution',
-    'crop_residue','mobile_solution','farmer_crops','ai_crop','ai_yield','ai_disease','ai_irrigation','ai_pest_risk',
+    'crop_residue','mobile_solution','khushhal_app_useful','farmer_crops','ai_crop','ai_yield','ai_disease','ai_irrigation','ai_pest_risk',
     'ai_market','ai_cost'
   ],
   stakeholder: [
     'name','fpo_role','fpo_district','fpo_years','fpo_member_count','fpo_activities','fpo_activities_other',
     'fpo_crops','fpo_crops_other','fpo_farmer_problems','fpo_farmer_problems_other',
     'fpo_disease_identification','fpo_support_challenge','fpo_digital_use','fpo_digital_satisfaction',
-    'fpo_digital_barriers','ai_crop','ai_yield','ai_disease','ai_irrigation','ai_pest_risk','ai_market','ai_cost',
+    'fpo_digital_barriers','khushhal_app_useful','ai_crop','ai_yield','ai_disease','ai_irrigation','ai_pest_risk','ai_market','ai_cost',
     'fpo_top_modules','fpo_app_interest','fpo_support_needed','fpo_training_ready','fpo_partnership',
     'fpo_partnership_other','fpo_improvement','fpo_recommend','fpo_followup','fpo_name','contact_person',
     'mobile','email'
@@ -363,6 +413,7 @@ const QUESTION_TEXT_EN = {
   "desired_selling_solution": "What solution would you prefer for selling your produce?",
   "crop_residue": "What do you do with crop residue?",
   "mobile_solution": "Would you like solutions to all your farming problems on your mobile?",
+  "khushhal_app_useful": "Would the Khushhal Kisan mobile app and its farming support features be useful to you?",
   "ai_crop": "Crop Recommendation System",
   "ai_yield": "Crop Yield Prediction",
   "ai_disease": "Disease Detection",
@@ -417,6 +468,27 @@ function normalizeIndianMobile(raw) {
     ? digits.slice(2)
     : digits;
   return /^[6-9]\d{9}$/.test(national) ? national : null;
+}
+
+
+
+// Serialize attempts for a normalized mobile number and reject reuse across
+// Farmer/FPO and draft/completed records. A record may continue its own draft
+// using the same draft_key; every other record is blocked.
+async function lockAndCheckMobile(db, mobile, allowedDraftKey = null) {
+  await db.query('SELECT pg_advisory_xact_lock(hashtext($1))', [mobile]);
+  const result = await db.query(
+    `SELECT id, response_id, status, survey_type
+       FROM survey_responses
+      WHERE RIGHT(REGEXP_REPLACE(
+              COALESCE(NULLIF(BTRIM(mobile), ''), NULLIF(BTRIM(answers->>'mobile'), ''), ''),
+              '[^0-9]', '', 'g'), 10) = $1
+        AND ($2::text IS NULL OR draft_key IS DISTINCT FROM $2)
+      ORDER BY id DESC
+      LIMIT 1`,
+    [mobile, allowedDraftKey]
+  );
+  return result.rows[0] || null;
 }
 
 function getQuestionData(answers) {
@@ -486,30 +558,28 @@ function validateQuestionnaireAnswers(surveyType, answers) {
     'irrigation_method','irrigation_frequency','irrigation_crop','field_location','crop_quality',
     'soil_test','fertilizer_type','culture_treatment','farming_system','pest_attack',
     'recent_crop_name','recent_disease_name','disease_treatment','sell_where','selling_problems',
-    'desired_selling_solution','crop_residue','mobile_solution','ai_crop','ai_yield','ai_disease',
-    'ai_irrigation','ai_pest_risk','ai_market','ai_cost'
+    'desired_selling_solution','crop_residue','mobile_solution','khushhal_app_useful'
   ];
   const fpoRequired = [
     'fpo_role','fpo_district','fpo_years','fpo_member_count','fpo_activities','fpo_crops',
     'fpo_farmer_problems','fpo_disease_identification','fpo_support_challenge','fpo_digital_use',
-    'fpo_digital_barriers','ai_crop','ai_yield','ai_disease','ai_irrigation','ai_pest_risk',
-    'ai_market','ai_cost','fpo_top_modules','fpo_app_interest','fpo_support_needed',
+    'fpo_digital_barriers','khushhal_app_useful','fpo_top_modules','fpo_app_interest','fpo_support_needed',
     'fpo_training_ready','fpo_partnership','fpo_improvement','fpo_recommend','fpo_followup','contact_person','mobile'
   ];
   const required = surveyType === 'farmer' ? farmerRequired : fpoRequired;
   for (const key of required) {
     const value = answers[key];
     const empty = value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0);
-    if (empty) return `à¤•à¥ƒà¤ªà¤¯à¤¾ à¤¸à¤­à¥€ à¤†à¤µà¤¶à¥à¤¯à¤• à¤ªà¥à¤°à¤¶à¥à¤¨à¥‹à¤‚ à¤•à¤¾ à¤‰à¤¤à¥à¤¤à¤° à¤¦à¥‡à¤‚à¥¤ (${key})`;
+    if (empty) return `Ã Â¤â€¢Ã Â¥Æ’Ã Â¤ÂªÃ Â¤Â¯Ã Â¤Â¾ Ã Â¤Â¸Ã Â¤Â­Ã Â¥â‚¬ Ã Â¤â€ Ã Â¤ÂµÃ Â¤Â¶Ã Â¥ÂÃ Â¤Â¯Ã Â¤â€¢ Ã Â¤ÂªÃ Â¥ÂÃ Â¤Â°Ã Â¤Â¶Ã Â¥ÂÃ Â¤Â¨Ã Â¥â€¹Ã Â¤â€š Ã Â¤â€¢Ã Â¤Â¾ Ã Â¤â€°Ã Â¤Â¤Ã Â¥ÂÃ Â¤Â¤Ã Â¤Â° Ã Â¤Â¦Ã Â¥â€¡Ã Â¤â€šÃ Â¥Â¤ (${key})`;
   }
   if (surveyType === 'farmer' && answers.crop_quality === 'No' && !answers.low_quality_reasons?.length) {
-    return 'à¤•à¥ƒà¤ªà¤¯à¤¾ à¤«à¤¸à¤² à¤•à¥€ à¤•à¤® à¤ªà¥ˆà¤¦à¤¾à¤µà¤¾à¤° à¤¯à¤¾ à¤–à¤°à¤¾à¤¬ à¤—à¥à¤£à¤µà¤¤à¥à¤¤à¤¾ à¤•à¤¾ à¤•à¤¾à¤°à¤£ à¤šà¥à¤¨à¥‡à¤‚à¥¤';
+    return 'Ã Â¤â€¢Ã Â¥Æ’Ã Â¤ÂªÃ Â¤Â¯Ã Â¤Â¾ Ã Â¤Â«Ã Â¤Â¸Ã Â¤Â² Ã Â¤â€¢Ã Â¥â‚¬ Ã Â¤â€¢Ã Â¤Â® Ã Â¤ÂªÃ Â¥Ë†Ã Â¤Â¦Ã Â¤Â¾Ã Â¤ÂµÃ Â¤Â¾Ã Â¤Â° Ã Â¤Â¯Ã Â¤Â¾ Ã Â¤â€“Ã Â¤Â°Ã Â¤Â¾Ã Â¤Â¬ Ã Â¤â€”Ã Â¥ÂÃ Â¤Â£Ã Â¤ÂµÃ Â¤Â¤Ã Â¥ÂÃ Â¤Â¤Ã Â¤Â¾ Ã Â¤â€¢Ã Â¤Â¾ Ã Â¤â€¢Ã Â¤Â¾Ã Â¤Â°Ã Â¤Â£ Ã Â¤Å¡Ã Â¥ÂÃ Â¤Â¨Ã Â¥â€¡Ã Â¤â€šÃ Â¥Â¤';
   }
   if (surveyType === 'farmer' && answers.soil_test === 'Yes' && !answers.soil_test_method) {
-    return 'à¤•à¥ƒà¤ªà¤¯à¤¾ à¤®à¤¿à¤Ÿà¥à¤Ÿà¥€ à¤œà¤¾à¤à¤š à¤•à¤¾ à¤®à¤¾à¤§à¥à¤¯à¤® à¤šà¥à¤¨à¥‡à¤‚à¥¤';
+    return 'Ã Â¤â€¢Ã Â¥Æ’Ã Â¤ÂªÃ Â¤Â¯Ã Â¤Â¾ Ã Â¤Â®Ã Â¤Â¿Ã Â¤Å¸Ã Â¥ÂÃ Â¤Å¸Ã Â¥â‚¬ Ã Â¤Å“Ã Â¤Â¾Ã Â¤ÂÃ Â¤Å¡ Ã Â¤â€¢Ã Â¤Â¾ Ã Â¤Â®Ã Â¤Â¾Ã Â¤Â§Ã Â¥ÂÃ Â¤Â¯Ã Â¤Â® Ã Â¤Å¡Ã Â¥ÂÃ Â¤Â¨Ã Â¥â€¡Ã Â¤â€šÃ Â¥Â¤';
   }
   if (surveyType === 'stakeholder' && ['Yes, regularly','Yes, occasionally'].includes(answers.fpo_digital_use) && !answers.fpo_digital_satisfaction) {
-    return 'à¤•à¥ƒà¤ªà¤¯à¤¾ à¤®à¥Œà¤œà¥‚à¤¦à¤¾ à¤¡à¤¿à¤œà¤¿à¤Ÿà¤² à¤•à¥ƒà¤·à¤¿ à¤¸à¥‡à¤µà¤¾à¤“à¤‚ à¤•à¥‡ à¤ªà¥à¤°à¤¤à¤¿ à¤¸à¤‚à¤¤à¥à¤·à¥à¤Ÿà¤¿ à¤¬à¤¤à¤¾à¤à¤‚à¥¤';
+    return 'Ã Â¤â€¢Ã Â¥Æ’Ã Â¤ÂªÃ Â¤Â¯Ã Â¤Â¾ Ã Â¤Â®Ã Â¥Å’Ã Â¤Å“Ã Â¥â€šÃ Â¤Â¦Ã Â¤Â¾ Ã Â¤Â¡Ã Â¤Â¿Ã Â¤Å“Ã Â¤Â¿Ã Â¤Å¸Ã Â¤Â² Ã Â¤â€¢Ã Â¥Æ’Ã Â¤Â·Ã Â¤Â¿ Ã Â¤Â¸Ã Â¥â€¡Ã Â¤ÂµÃ Â¤Â¾Ã Â¤â€œÃ Â¤â€š Ã Â¤â€¢Ã Â¥â€¡ Ã Â¤ÂªÃ Â¥ÂÃ Â¤Â°Ã Â¤Â¤Ã Â¤Â¿ Ã Â¤Â¸Ã Â¤â€šÃ Â¤Â¤Ã Â¥ÂÃ Â¤Â·Ã Â¥ÂÃ Â¤Å¸Ã Â¤Â¿ Ã Â¤Â¬Ã Â¤Â¤Ã Â¤Â¾Ã Â¤ÂÃ Â¤â€šÃ Â¥Â¤';
   }
   const otherRules = [
     ['irrigation_frequency', 'Other'], ['low_quality_reasons', 'Other'], ['fertilizer_type', 'Other'],
@@ -519,20 +589,20 @@ function validateQuestionnaireAnswers(surveyType, answers) {
   for (const [key, choice] of otherRules) {
     const value = answers[key];
     const selected = value === choice || (Array.isArray(value) && value.includes(choice));
-    if (selected && !String(answers[`${key}_other`] || '').trim()) return 'à¤•à¥ƒà¤ªà¤¯à¤¾ à¤…à¤¨à¥à¤¯ à¤µà¤¿à¤•à¤²à¥à¤ª à¤•à¤¾ à¤µà¤¿à¤µà¤°à¤£ à¤²à¤¿à¤–à¥‡à¤‚à¥¤';
+    if (selected && !String(answers[`${key}_other`] || '').trim()) return 'Ã Â¤â€¢Ã Â¥Æ’Ã Â¤ÂªÃ Â¤Â¯Ã Â¤Â¾ Ã Â¤â€¦Ã Â¤Â¨Ã Â¥ÂÃ Â¤Â¯ Ã Â¤ÂµÃ Â¤Â¿Ã Â¤â€¢Ã Â¤Â²Ã Â¥ÂÃ Â¤Âª Ã Â¤â€¢Ã Â¤Â¾ Ã Â¤ÂµÃ Â¤Â¿Ã Â¤ÂµÃ Â¤Â°Ã Â¤Â£ Ã Â¤Â²Ã Â¤Â¿Ã Â¤â€“Ã Â¥â€¡Ã Â¤â€šÃ Â¥Â¤';
   }
   if (Array.isArray(answers.fpo_top_modules) && answers.fpo_top_modules.length > 3) {
-    return 'FPO à¤•à¥‡ à¤ªà¥à¤°à¤¶à¥à¤¨ 13 à¤®à¥‡à¤‚ à¤…à¤§à¤¿à¤•à¤¤à¤® 3 à¤®à¥‰à¤¡à¥à¤¯à¥‚à¤² à¤šà¥à¤¨à¥‡à¤‚à¥¤';
+    return 'FPO Ã Â¤â€¢Ã Â¥â€¡ Ã Â¤ÂªÃ Â¥ÂÃ Â¤Â°Ã Â¤Â¶Ã Â¥ÂÃ Â¤Â¨ 13 Ã Â¤Â®Ã Â¥â€¡Ã Â¤â€š Ã Â¤â€¦Ã Â¤Â§Ã Â¤Â¿Ã Â¤â€¢Ã Â¤Â¤Ã Â¤Â® 3 Ã Â¤Â®Ã Â¥â€°Ã Â¤Â¡Ã Â¥ÂÃ Â¤Â¯Ã Â¥â€šÃ Â¤Â² Ã Â¤Å¡Ã Â¥ÂÃ Â¤Â¨Ã Â¥â€¡Ã Â¤â€šÃ Â¥Â¤';
   }
   for (const [key, value] of Object.entries(answers)) {
     if (!key.endsWith('_other')) continue;
-    if (typeof value === 'string' && value.length > 1000) return 'à¤…à¤¨à¥à¤¯ à¤µà¤¿à¤•à¤²à¥à¤ª à¤•à¤¾ à¤µà¤¿à¤µà¤°à¤£ à¤¬à¤¹à¥à¤¤ à¤²à¤‚à¤¬à¤¾ à¤¹à¥ˆà¥¤';
+    if (typeof value === 'string' && value.length > 1000) return 'Ã Â¤â€¦Ã Â¤Â¨Ã Â¥ÂÃ Â¤Â¯ Ã Â¤ÂµÃ Â¤Â¿Ã Â¤â€¢Ã Â¤Â²Ã Â¥ÂÃ Â¤Âª Ã Â¤â€¢Ã Â¤Â¾ Ã Â¤ÂµÃ Â¤Â¿Ã Â¤ÂµÃ Â¤Â°Ã Â¤Â£ Ã Â¤Â¬Ã Â¤Â¹Ã Â¥ÂÃ Â¤Â¤ Ã Â¤Â²Ã Â¤â€šÃ Â¤Â¬Ã Â¤Â¾ Ã Â¤Â¹Ã Â¥Ë†Ã Â¥Â¤';
   }
   for (const key of ['soil_report_photo', 'disease_photo']) {
     const photo = answers[key];
     if (photo && typeof photo === 'object' && photo.dataUrl) {
       if (!/^data:image\/(jpeg|png|webp);base64,/.test(photo.dataUrl) || photo.dataUrl.length > 2500000) {
-        return 'à¤«à¥‹à¤Ÿà¥‹ à¤•à¤¾ à¤ªà¥à¤°à¤¾à¤°à¥‚à¤ª à¤¯à¤¾ à¤†à¤•à¤¾à¤° à¤®à¤¾à¤¨à¥à¤¯ à¤¨à¤¹à¥€à¤‚ à¤¹à¥ˆà¥¤';
+        return 'Ã Â¤Â«Ã Â¥â€¹Ã Â¤Å¸Ã Â¥â€¹ Ã Â¤â€¢Ã Â¤Â¾ Ã Â¤ÂªÃ Â¥ÂÃ Â¤Â°Ã Â¤Â¾Ã Â¤Â°Ã Â¥â€šÃ Â¤Âª Ã Â¤Â¯Ã Â¤Â¾ Ã Â¤â€ Ã Â¤â€¢Ã Â¤Â¾Ã Â¤Â° Ã Â¤Â®Ã Â¤Â¾Ã Â¤Â¨Ã Â¥ÂÃ Â¤Â¯ Ã Â¤Â¨Ã Â¤Â¹Ã Â¥â‚¬Ã Â¤â€š Ã Â¤Â¹Ã Â¥Ë†Ã Â¥Â¤';
       }
     }
   }
@@ -601,11 +671,8 @@ app.post('/api/admin/login', async (req, res) => {
     }
 
     if (username !== process.env.ADMIN_USERNAME) {
-      adminLoginAttempts.get(clientIp).count += 1;
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid username or password.'
-      });
+      adminLoginAttempts.get(clientIp).count = 0;
+      return await staffLogin(req, res);
     }
 
     const passwordMatch = await bcrypt.compare(
@@ -648,7 +715,7 @@ app.post('/api/admin/login', async (req, res) => {
 // VERIFY ADMIN LOGIN
 // --------------------------------------------------
 
-app.get('/api/admin/me', requireAdmin, (req, res) => {
+app.get('/api/admin/me', requireStaff, (req, res) => {
   return res.json({
     success: true,
     username: req.admin.username,
@@ -686,6 +753,308 @@ function requireAdmin(req, res, next) {
   }
 }
 // --------------------------------------------------
+
+// --------------------------------------------------
+// STAFF ACCOUNTS + FARMER CUSTOMER SUPPORT
+// All tables below belong ONLY to the new local database.
+// --------------------------------------------------
+let staffSupportSchemaReady = false;
+
+async function ensureStaffSupportSchema() {
+  if (!pool) throw new Error("Local database unavailable.");
+  if (staffSupportSchemaReady) return;
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS staff_users (
+      id BIGSERIAL PRIMARY KEY,
+      full_name TEXT NOT NULL,
+      username VARCHAR(80) UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      permissions JSONB NOT NULL DEFAULT '{}'::jsonb,
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS farmer_support_settings (
+      id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+      active BOOLEAN NOT NULL DEFAULT FALSE,
+      call_number VARCHAR(20) NOT NULL DEFAULT '',
+      whatsapp_number VARCHAR(20) NOT NULL DEFAULT '',
+      available_from VARCHAR(10) NOT NULL DEFAULT '09:00',
+      available_to VARCHAR(10) NOT NULL DEFAULT '18:00',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    INSERT INTO farmer_support_settings (id)
+    VALUES (1) ON CONFLICT (id) DO NOTHING
+  `);
+
+  staffSupportSchemaReady = true;
+}
+
+const defaultStaffPermissions = {
+  farmer: false,
+  stakeholder: false,
+  oldData: false,
+  newData: true,
+  pendingFarmer: false,
+  pendingStakeholder: false
+};
+
+function cleanStaffPermissions(input = {}) {
+  const p = input && typeof input === "object" ? input : {};
+  return {
+    farmer: p.farmer === true,
+    stakeholder: p.stakeholder === true,
+    oldData: p.oldData === true,
+    newData: p.newData === true,
+    pendingFarmer: p.pendingFarmer === true,
+    pendingStakeholder: p.pendingStakeholder === true
+  };
+}
+
+async function requireStaff(req, res, next) {
+  const auth = req.headers.authorization || "";
+  if (!auth.startsWith("Bearer ")) {
+    return res.status(401).json({ success: false, message: "Login required." });
+  }
+  try {
+    const decoded = jwt.verify(auth.slice(7), process.env.JWT_SECRET);
+    if (decoded.role === "admin") {
+      req.admin = decoded;
+      req.staffPermissions = null;
+      return next();
+    }
+    if (decoded.role !== "staff" || !decoded.staffId) {
+      return res.status(403).json({ success: false, message: "Access denied." });
+    }
+    await ensureStaffSupportSchema();
+    const result = await pool.query(
+      "SELECT id, username, permissions, active FROM staff_users WHERE id=$1",
+      [decoded.staffId]
+    );
+    const user = result.rows[0];
+    if (!user || !user.active) {
+      return res.status(401).json({ success: false, message: "Staff account is inactive." });
+    }
+    req.admin = decoded;
+    req.staffPermissions = cleanStaffPermissions(user.permissions);
+    next();
+  } catch (err) {
+    if (res.headersSent) return;
+    return res.status(401).json({ success: false, message: "Invalid or expired login." });
+  }
+}
+
+function requireAdminOnly(req, res, next) {
+  return requireAdmin(req, res, next);
+}
+
+// Staff login uses the same login screen endpoint but a separate role.
+async function staffLogin(req, res) {
+  try {
+    await ensureStaffSupportSchema();
+    const username = String(req.body?.username || "").trim();
+    const password = String(req.body?.password || "");
+    if (!username || !password || !process.env.JWT_SECRET) {
+      return res.status(400).json({ success: false, message: "Invalid login details." });
+    }
+    const result = await pool.query(
+      "SELECT id, username, password_hash, permissions, active FROM staff_users WHERE LOWER(username)=LOWER($1)",
+      [username]
+    );
+    const staff = result.rows[0];
+    if (!staff || !staff.active || !(await bcrypt.compare(password, staff.password_hash))) {
+      return res.status(401).json({ success: false, message: "Invalid username or password." });
+    }
+    const token = jwt.sign(
+      { role: "staff", username: staff.username, staffId: staff.id },
+      process.env.JWT_SECRET,
+      { expiresIn: "8h" }
+    );
+    return res.json({
+      success: true,
+      token,
+      role: "staff",
+      username: staff.username,
+      permissions: cleanStaffPermissions(staff.permissions)
+    });
+  } catch (err) {
+    console.error("Staff login failed:", err.message);
+    return res.status(500).json({ success: false, message: "Staff login failed." });
+  }
+}
+
+app.post("/api/staff/login", staffLogin);
+
+app.get("/api/staff/me", requireStaff, (req, res) => {
+  res.json({
+    success: true,
+    role: req.admin.role,
+    username: req.admin.username,
+    permissions: req.staffPermissions
+  });
+});
+
+// Admin-only staff account management.
+app.get("/api/admin/staff", requireAdmin, async (_req, res) => {
+  try {
+    await ensureStaffSupportSchema();
+    const result = await pool.query(
+      "SELECT id, full_name, username, permissions, active, created_at FROM staff_users ORDER BY id DESC"
+    );
+    res.json({ success: true, staff: result.rows });
+  } catch (err) {
+    console.error("Staff list failed:", err.message);
+    res.status(500).json({ success: false, message: "Could not load staff accounts." });
+  }
+});
+
+app.post("/api/admin/staff", requireAdmin, async (req, res) => {
+  try {
+    await ensureStaffSupportSchema();
+    const fullName = String(req.body?.fullName || "").trim();
+    const username = String(req.body?.username || "").trim();
+    const password = String(req.body?.password || "");
+    const permissions = cleanStaffPermissions(req.body?.permissions);
+    if (!fullName || !/^[a-zA-Z0-9._-]{3,40}$/.test(username) || password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, valid Staff ID (3-40 characters) and password (minimum 8 characters) are required."
+      });
+    }
+    if (!Object.values(permissions).some(Boolean)) {
+      return res.status(400).json({ success: false, message: "Select at least one permission." });
+    }
+    const hash = await bcrypt.hash(password, 12);
+    const result = await pool.query(
+      `INSERT INTO staff_users (full_name, username, password_hash, permissions)
+       VALUES ($1,$2,$3,$4::jsonb)
+       RETURNING id, full_name, username, permissions, active, created_at`,
+      [fullName, username, hash, JSON.stringify(permissions)]
+    );
+    res.status(201).json({ success: true, staff: result.rows[0] });
+  } catch (err) {
+    if (err.code === "23505") return res.status(409).json({ success: false, message: "This Staff ID already exists." });
+    console.error("Staff creation failed:", err.message);
+    res.status(500).json({ success: false, message: "Could not create staff account." });
+  }
+});
+
+app.patch("/api/admin/staff/:id", requireAdmin, async (req, res) => {
+  try {
+    await ensureStaffSupportSchema();
+    const id = Number(req.params.id);
+    if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({ success: false, message: "Invalid staff ID." });
+    const active = req.body?.active;
+    const permissions = req.body?.permissions;
+    if (typeof active !== "boolean" && permissions === undefined) {
+      return res.status(400).json({ success: false, message: "No valid change supplied." });
+    }
+    const values = [];
+    const sets = [];
+    if (typeof active === "boolean") { values.push(active); sets.push("active=$" + values.length); }
+    if (permissions !== undefined) {
+      const p = cleanStaffPermissions(permissions);
+      if (!Object.values(p).some(Boolean)) return res.status(400).json({ success: false, message: "At least one permission is required." });
+      values.push(JSON.stringify(p)); sets.push("permissions=$" + values.length + "::jsonb");
+    }
+    values.push(id);
+    const result = await pool.query(
+      "UPDATE staff_users SET " + sets.join(", ") + ", updated_at=NOW() WHERE id=$" + values.length +
+      " RETURNING id, full_name, username, permissions, active, created_at",
+      values
+    );
+    if (!result.rowCount) return res.status(404).json({ success: false, message: "Staff account not found." });
+    res.json({ success: true, staff: result.rows[0] });
+  } catch (err) {
+    console.error("Staff update failed:", err.message);
+    res.status(500).json({ success: false, message: "Could not update staff account." });
+  }
+});
+
+// Admin-only permanent staff account deletion.
+app.delete("/api/admin/staff/:id", requireAdmin, async (req, res) => {
+  try {
+    await ensureStaffSupportSchema();
+    const id = Number(req.params.id);
+    if (!Number.isSafeInteger(id) || id < 1) {
+      return res.status(400).json({ success: false, message: "Invalid staff ID." });
+    }
+
+    const result = await pool.query(
+      "DELETE FROM staff_users WHERE id=$1 RETURNING id, username",
+      [id]
+    );
+
+    if (!result.rowCount) {
+      return res.status(404).json({ success: false, message: "Staff account not found." });
+    }
+
+    return res.json({
+      success: true,
+      message: "Staff account permanently deleted.",
+      deleted: result.rows[0]
+    });
+  } catch (err) {
+    console.error("Staff deletion failed:", err.message);
+    return res.status(500).json({ success: false, message: "Could not delete staff account." });
+  }
+});
+// Public read-only support settings for the farmer-facing website.
+app.get("/api/support", async (_req, res) => {
+  try {
+    await ensureStaffSupportSchema();
+    const result = await pool.query(
+      "SELECT active, call_number, whatsapp_number, available_from, available_to FROM farmer_support_settings WHERE id=1"
+    );
+    res.json({ success: true, settings: result.rows[0] || { active: false } });
+  } catch (err) {
+    console.error("Support settings read failed:", err.message);
+    res.status(500).json({ success: false, message: "Support settings unavailable." });
+  }
+});
+
+app.get("/api/admin/support-settings", requireAdmin, async (_req, res) => {
+  try {
+    await ensureStaffSupportSchema();
+    const result = await pool.query("SELECT * FROM farmer_support_settings WHERE id=1");
+    res.json({ success: true, settings: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Could not load support settings." });
+  }
+});
+
+app.put("/api/admin/support-settings", requireAdmin, async (req, res) => {
+  try {
+    await ensureStaffSupportSchema();
+    const active = req.body?.active === true;
+    const callNumber = String(req.body?.callNumber || "").replace(/[^0-9+]/g, "").slice(0, 16);
+    const whatsappNumber = String(req.body?.whatsappNumber || "").replace(/[^0-9]/g, "").slice(0, 15);
+    const from = String(req.body?.availableFrom || "09:00");
+    const to = String(req.body?.availableTo || "18:00");
+    const validTime = value => /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(value);
+    if (active && (!/^[+]?[0-9]{10,15}$/.test(callNumber) ||
+        !/^[0-9]{10,15}$/.test(whatsappNumber) || !validTime(from) || !validTime(to))) {
+      return res.status(400).json({ success: false, message: "Enter valid phone numbers and availability times before activating support." });
+    }
+    const result = await pool.query(
+      `UPDATE farmer_support_settings SET active=$1, call_number=$2, whatsapp_number=$3,
+       available_from=$4, available_to=$5, updated_at=NOW() WHERE id=1 RETURNING *`,
+      [active, callNumber, whatsappNumber, from, to]
+    );
+    res.json({ success: true, settings: result.rows[0] });
+  } catch (err) {
+    console.error("Support settings update failed:", err.message);
+    res.status(500).json({ success: false, message: "Could not save support settings." });
+  }
+});
+
 // HEALTH CHECK
 // --------------------------------------------------
 
@@ -731,16 +1100,35 @@ app.post('/api/surveys/draft/lookup', async (req, res) => {
   if (!name || !mobile) return res.status(400).json({ error: 'Name and valid mobile are required.' });
   try {
     const result = await pool.query(
-      `SELECT draft_key, response_id, survey_type, language, answers, current_step, updated_at
+      `SELECT draft_key, response_id, survey_type, survey_version, status,
+              language, answers, current_step, updated_at,
+              LOWER(BTRIM(COALESCE(name, answers->>'name', answers->>'contact_person', answers->>'fpo_name', ''))) AS normalized_name
        FROM survey_responses
-       WHERE status = 'draft' AND survey_type = $3
-         AND COALESCE(survey_version, 'legacy') = $4
-         AND LOWER(BTRIM(COALESCE(name, answers->>'name', answers->>'contact_person', answers->>'fpo_name', ''))) = LOWER($1)
-         AND RIGHT(REGEXP_REPLACE(COALESCE(NULLIF(BTRIM(mobile), ''), NULLIF(BTRIM(answers->>'mobile'), ''), ''), '[^0-9]', '', 'g'), 10) = $2
-       ORDER BY updated_at DESC, id DESC LIMIT 1`,
-      [name, mobile, surveyType, surveyVersion]
+       WHERE RIGHT(REGEXP_REPLACE(
+               COALESCE(NULLIF(BTRIM(mobile), ''), NULLIF(BTRIM(answers->>'mobile'), ''), ''),
+               '[^0-9]', '', 'g'), 10) = $1
+       ORDER BY CASE WHEN status = 'completed' THEN 0 ELSE 1 END, updated_at DESC, id DESC
+`,
+      [mobile]
     );
-    return res.json({ success: true, draft: result.rows[0] || null });
+    const completed = result.rows.find(row => row.status === 'completed');
+    if (completed) {
+      return res.json({ success: true, draft: null, alreadyRegistered: true });
+    }
+    const resumable = result.rows.find(row =>
+      row.status === 'draft' &&
+      row.survey_type === surveyType &&
+      (row.survey_version || 'legacy') === surveyVersion &&
+      row.normalized_name === name.toLowerCase()
+    );
+    if (resumable) {
+      delete resumable.normalized_name;
+      return res.json({ success: true, draft: resumable });
+    }
+    if (result.rows.length) {
+      return res.json({ success: true, draft: null, alreadyRegistered: true });
+    }
+    return res.json({ success: true, draft: null });
   } catch (err) {
     console.error('Draft identity lookup failed:', err.message);
     return res.status(500).json({ error: 'Could not check for a saved draft.' });
@@ -846,6 +1234,14 @@ app.post('/api/surveys/draft', async (req, res) => {
   try {
     client = await pool.connect();
     await client.query('BEGIN');
+
+    const mobileOwner = await lockAndCheckMobile(client, draftMobile, draftKey);
+    if (mobileOwner) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        error: 'This mobile number is already registered. One mobile number can be used only once.'
+      });
+    }
 
     // Reuse the same response ID for every autosave of this draft.
     // This prevents the serial sequence from skipping a number on each keystroke.
@@ -1045,6 +1441,18 @@ app.post('/api/surveys', async (req, res) => {
 
   try {
     await client.query('BEGIN');
+
+    if (!normalizedMobile) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'A valid 10-digit Indian mobile number is required.' });
+    }
+    const mobileOwner = await lockAndCheckMobile(client, normalizedMobile, draftKey || null);
+    if (mobileOwner) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        error: 'This mobile number is already registered. One mobile number can be used only once.'
+      });
+    }
 
     // Check for an existing draft or completed submission.
     let existing = null;
@@ -1253,7 +1661,7 @@ app.post('/api/surveys', async (req, res) => {
 // ADMIN: GET ALL COMPLETED SURVEYS
 // --------------------------------------------------
 
-app.get('/api/admin/surveys', requireAdmin, async (req, res) => {
+app.get('/api/admin/surveys', requireStaff, async (req, res) => {
   if (!pool) return res.status(503).json({ success: false, message: 'New local database unavailable.' });
   const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 50, 1), 100);
   const offset = Math.max(Number.parseInt(req.query.offset, 10) || 0, 0);
@@ -1272,7 +1680,7 @@ app.get('/api/admin/surveys', requireAdmin, async (req, res) => {
       ${surveyType ? 'AND survey_type = $1' : ''}
       ORDER BY submitted_at DESC NULLS LAST, id DESC
     `, surveyType ? [surveyType] : []);
-    const localRows = localResult.rows.map(row => ({ ...row, source: 'New (Local)' }));
+    const localRows = localResult.rows.map(row => ({ ...row, answers: normalizedAnswersFromRow(row), source: 'New (Local)' }));
 
     let oldRows = [];
     let oldDataUnavailable = false;
@@ -1290,6 +1698,7 @@ app.get('/api/admin/surveys', requireAdmin, async (req, res) => {
             for (const [key, column] of Object.entries(QUESTION_COLUMNS)) {
               if (answers[key] === undefined && row[column] !== undefined && row[column] !== null) answers[key] = row[column];
             }
+            answers = normalizedAnswersFromRow({ ...row, answers });
             return {
               ...row,
               answers,
@@ -1311,7 +1720,31 @@ app.get('/api/admin/surveys', requireAdmin, async (req, res) => {
       oldDataUnavailable = true;
       oldDataMessage = 'LEGACY_DATABASE_URL is not configured; old Neon records are unavailable.';
     }
-    const allRows = [...localRows, ...oldRows].sort((a, b) => new Date(b.submitted_at || 0) - new Date(a.submitted_at || 0));
+    let allRows = [...localRows, ...oldRows];
+    if (req.staffPermissions) {
+      const p = req.staffPermissions;
+      allRows = allRows.filter(row => {
+        const typeAllowed = row.survey_type === 'farmer' ? p.farmer :
+          ['stakeholder','fpo'].includes(row.survey_type) ? p.stakeholder : false;
+        const sourceAllowed = row.source === 'Old (Neon)' ? p.oldData : p.newData;
+        return typeAllowed && sourceAllowed;
+      });
+    }
+    allRows.sort((a, b) => new Date(b.submitted_at || 0) - new Date(a.submitted_at || 0));
+    const pageRows = allRows.slice(offset, offset + limit);
+    const visibleRows = req.staffPermissions
+      ? pageRows.map(row => {
+          const answers = row.answers && typeof row.answers === "object" ? row.answers : {};
+          const { answers: hiddenAnswers, ...basic } = row;
+          return {
+            ...basic,
+            name: row.name || answers.name || answers.contact_person || answers.fpo_name || "",
+            mobile: row.mobile || answers.mobile || "",
+            location: row.location || answers.location || answers.address || answers.fpo_district || ""
+          };
+        })
+      : pageRows;
+
     return res.json({
       success: true,
       total: allRows.length,
@@ -1319,7 +1752,7 @@ app.get('/api/admin/surveys', requireAdmin, async (req, res) => {
       offset,
       oldDataUnavailable,
       oldDataMessage,
-      surveys: allRows.slice(offset, offset + limit)
+      surveys: visibleRows
     });
   } catch (err) {
     console.error('Admin survey retrieval failed:', err.message);
@@ -1329,9 +1762,101 @@ app.get('/api/admin/surveys', requireAdmin, async (req, res) => {
 // --------------------------------------------------
 
 // --------------------------------------------------
+// INDIVIDUAL SUBMITTED SURVEY DETAILS
+// Staff permissions are checked on every request.
+// --------------------------------------------------
+app.get('/api/admin/survey-detail/:source/:id', requireStaff, async (req, res) => {
+  const source = String(req.params.source || '');
+  const id = String(req.params.id || '');
+  const surveyType = String(req.query.type || '');
+
+  if (!['local', 'old'].includes(source) || !/^[0-9]+$/.test(id) ||
+      !['farmer', 'stakeholder'].includes(surveyType)) {
+    return res.status(400).json({ success: false, message: 'Invalid record reference.' });
+  }
+
+  if (req.staffPermissions) {
+    const p = req.staffPermissions;
+    const typeAllowed = surveyType === 'farmer' ? p.farmer : p.stakeholder;
+    const sourceAllowed = source === 'old' ? p.oldData : p.newData;
+    if (!typeAllowed || !sourceAllowed) {
+      return res.status(403).json({ success: false, message: 'You do not have permission to view this record.' });
+    }
+  }
+
+  try {
+    let row;
+
+    if (source === 'local') {
+      const result = await pool.query(
+        `SELECT * FROM survey_responses
+         WHERE id = $1 AND status = 'completed'
+           AND COALESCE(survey_version, 'new') = 'new'
+           AND ($2 = 'farmer' AND survey_type = 'farmer'
+             OR $2 = 'stakeholder' AND survey_type IN ('stakeholder','fpo'))
+         LIMIT 1`,
+        [id, surveyType]
+      );
+      row = result.rows[0];
+    } else {
+      if (!legacyPool) {
+        return res.status(503).json({ success: false, message: 'Old records are currently unavailable.' });
+      }
+      const result = await legacyPool.query(
+        'SELECT * FROM survey_responses WHERE id = $1 LIMIT 1',
+        [id]
+      );
+      row = result.rows[0];
+
+      if (row && (
+        row.status !== 'completed' ||
+        (surveyType === 'farmer' && row.survey_type !== 'farmer') ||
+        (surveyType === 'stakeholder' && !['stakeholder','fpo'].includes(row.survey_type))
+      )) {
+        row = null;
+      }
+
+      if (row) {
+        let answers = row.answers || {};
+        if (typeof answers === 'string') {
+          try { answers = JSON.parse(answers); } catch { answers = {}; }
+        }
+        if (!answers || typeof answers !== 'object' || Array.isArray(answers)) answers = {};
+        for (const [key, column] of Object.entries(QUESTION_COLUMNS)) {
+          if (answers[key] === undefined && row[column] !== undefined && row[column] !== null) {
+            answers[key] = row[column];
+          }
+        }
+        answers = normalizedAnswersFromRow({ ...row, answers });
+        row = {
+          ...row,
+          answers,
+          response_id: row.response_id || row.survey_id || row.id,
+          survey_version: 'legacy',
+          status: 'completed',
+          location: row.location || row.address || answers.address || answers.fpo_district || '',
+          source: 'Old (Neon)'
+        };
+      }
+    }
+
+    if (!row) return res.status(404).json({ success: false, message: 'Survey record not found.' });
+
+    if (source === 'local') {
+      row = { ...row, answers: normalizedAnswersFromRow(row), source: 'New (Local)' };
+    }
+    return res.json({ success: true, survey: row });
+  } catch (err) {
+    console.error('Individual survey detail failed:', err.message);
+    return res.status(500).json({ success: false, message: 'Could not load survey details.' });
+  }
+});
+
+// --------------------------------------------------
+// --------------------------------------------------
 // ADMIN: PENDING (farmers who started but did not submit)
 // --------------------------------------------------
-app.get('/api/admin/enquiries', requireAdmin, async (req, res) => {
+app.get('/api/admin/enquiries', requireStaff, async (req, res) => {
   if (!pool) {
     return res.status(503).json({ success: false, message: 'Database unavailable.' });
   }
@@ -1341,6 +1866,13 @@ app.get('/api/admin/enquiries', requireAdmin, async (req, res) => {
   const surveyType = String(req.query.type || 'farmer');
   if (!['farmer', 'stakeholder'].includes(surveyType)) {
     return res.status(400).json({ success: false, message: 'Invalid survey type.' });
+  }
+
+  if (req.staffPermissions) {
+    const allowed = surveyType === 'farmer'
+      ? req.staffPermissions.pendingFarmer
+      : req.staffPermissions.pendingStakeholder;
+    if (!allowed) return res.json({ success: true, total: 0, limit, offset, pending: [] });
   }
 
   const where = `
@@ -1365,12 +1897,25 @@ app.get('/api/admin/enquiries', requireAdmin, async (req, res) => {
       [surveyType, limit, offset]
     );
 
+    const visiblePending = req.staffPermissions
+      ? result.rows.map(row => {
+          const answers = row.answers && typeof row.answers === "object" ? row.answers : {};
+          const { answers: hiddenAnswers, ...basic } = row;
+          return {
+            ...basic,
+            name: row.name || answers.name || answers.contact_person || answers.fpo_name || "",
+            mobile: row.mobile || answers.mobile || "",
+            location: row.location || answers.address || answers.fpo_district || ""
+          };
+        })
+      : result.rows;
+
     return res.json({
       success: true,
       total: countResult.rows[0].total,
       limit,
       offset,
-      pending: result.rows
+      pending: visiblePending
     });
   } catch (err) {
     console.error('Admin pending retrieval failed:', err.message);
@@ -1380,6 +1925,62 @@ app.get('/api/admin/enquiries', requireAdmin, async (req, res) => {
 
 // --------------------------------------------------
 
+// --------------------------------------------------
+// INDIVIDUAL PENDING DRAFT DETAILS
+// --------------------------------------------------
+app.get('/api/admin/enquiry-detail/:id', requireStaff, async (req, res) => {
+  const id = String(req.params.id || '');
+  const surveyType = String(req.query.type || '');
+
+  if (!/^[0-9]+$/.test(id) || !['farmer', 'stakeholder'].includes(surveyType)) {
+    return res.status(400).json({ success: false, message: 'Invalid pending record reference.' });
+  }
+
+  if (req.staffPermissions) {
+    const allowed = surveyType === 'farmer'
+      ? req.staffPermissions.pendingFarmer
+      : req.staffPermissions.pendingStakeholder;
+
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: 'You do not have permission to view this pending record.' });
+    }
+  }
+
+  if (!pool) {
+    return res.status(503).json({ success: false, message: 'Local database unavailable.' });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT id, response_id, legacy_response_id, survey_type, survey_version,
+              language, status, answers, name, mobile,
+              COALESCE(location, answers->>'address', answers->>'fpo_district') AS location,
+              current_step, created_at, updated_at
+       FROM survey_responses
+       WHERE id = $1
+         AND status = 'draft'
+         AND COALESCE(survey_version, 'new') = 'new'
+         AND survey_type = $2
+         AND COALESCE(NULLIF(BTRIM(name), ''), NULLIF(BTRIM(answers->>'name'), ''),
+             NULLIF(BTRIM(answers->>'contact_person'), ''), NULLIF(BTRIM(answers->>'fpo_name'), '')) IS NOT NULL
+         AND RIGHT(REGEXP_REPLACE(COALESCE(NULLIF(BTRIM(mobile), ''),
+             NULLIF(BTRIM(answers->>'mobile'), ''), ''), '[^0-9]', '', 'g'), 10) ~ '^[6-9][0-9]{9}$'
+       LIMIT 1`,
+      [id, surveyType]
+    );
+
+    if (!result.rowCount) {
+      return res.status(404).json({ success: false, message: 'Pending record not found.' });
+    }
+
+    return res.json({ success: true, pending: result.rows[0] });
+  } catch (err) {
+    console.error('Individual pending detail failed:', err.message);
+    return res.status(500).json({ success: false, message: 'Could not load pending details.' });
+  }
+});
+
+// --------------------------------------------------
 function excelLabel(key, lang) {
   const labels = {
     name: ['\u0928\u093e\u092e', '\u09a8\u09be\u09ae'],
@@ -1421,22 +2022,40 @@ app.get('/api/admin/export-excel', requireAdmin, async (_req, res) => {
       WHERE COALESCE(survey_version, 'new') = 'new'
       ORDER BY id ASC
     `);
-    const completed = local.rows.filter(r => r.status === 'completed');
-    const pending = local.rows.filter(r => r.status === 'draft' && isValidPendingRow(r));
+    const normalizedLocalRows = local.rows.map(row => ({ ...row, answers: normalizedAnswersFromRow(row) }));
+    const completed = normalizedLocalRows.filter(r => r.status === 'completed');
+    const pending = normalizedLocalRows.filter(r => r.status === 'draft' && isValidPendingRow(r));
     let legacyRows = [];
     let legacyQuestionLabels = {};
+    let legacyUnavailable = !legacyPool;
     if (legacyPool) {
-      const legacy = await legacyPool.query('SELECT * FROM survey_responses');
-      legacyRows = legacy.rows.filter(r => r.status === 'completed');
       try {
-        const oldCatalog = await legacyPool.query(`SELECT survey_type, question_id, question_text_hi, question_text_en, question_text_as FROM survey_question_catalog`);
-        for (const item of oldCatalog.rows) legacyQuestionLabels[`${item.survey_type}:${item.question_id}`] = item;
-      } catch (catalogError) {
-        console.warn('Historical question labels are not available in Neon metadata:', catalogError.message);
+        const legacy = await legacyPool.query('SELECT * FROM survey_responses');
+        legacyRows = legacy.rows.filter(r => r.status === 'completed').map(row => {
+          let answers = row.answers || {};
+          if (typeof answers === 'string') { try { answers = JSON.parse(answers); } catch { answers = {}; } }
+          if (!answers || typeof answers !== 'object' || Array.isArray(answers)) answers = {};
+          for (const key of LEGACY_AI_RATING_KEYS) {
+            if (answers[key] === undefined && row[key] !== undefined && row[key] !== null) answers[key] = row[key];
+          }
+          return { ...row, answers: normalizedAnswersFromRow({ ...row, answers }) };
+        });
+        try {
+          const oldCatalog = await legacyPool.query('SELECT survey_type, question_id, question_text_hi, question_text_en, question_text_as FROM survey_question_catalog');
+          for (const item of oldCatalog.rows) {
+            legacyQuestionLabels[`${item.survey_type}:${item.question_id}`] = item;
+          }
+        } catch (catalogError) {
+          console.warn('Historical question labels are not available in Neon metadata:', catalogError.message);
+        }
+      } catch (legacyError) {
+        legacyUnavailable = true;
+        legacyRows = [];
+        console.warn('Historical Neon rows unavailable; continuing local Excel export:', legacyError.message);
       }
     }
     const catalog = JSON.parse(await fs.readFile(path.join(__dirname, 'config', 'question-catalog.json'), 'utf8'));
-    const workbook = await createSixSheetWorkbook({ localRows: local.rows, legacyRows, currentCatalog: catalog, legacyQuestionLabels });
+    const workbook = await createSixSheetWorkbook({ localRows: normalizedLocalRows, legacyRows, currentCatalog: catalog, legacyQuestionLabels, legacyUnavailable });
     const buffer = await workbook.xlsx.writeBuffer();
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename="Khushhal_Kisan_6_Sheets.xlsx"');
@@ -1450,7 +2069,7 @@ app.get('/api/admin/export-excel', requireAdmin, async (_req, res) => {
 // ADMIN DASHBOARD SUMMARY
 // --------------------------------------------------
 
-app.get('/api/admin/dashboard', requireAdmin, async (_req, res) => {
+app.get('/api/admin/dashboard', requireStaff, async (req, res) => {
   try {
     if (!pool) return res.status(503).json({ success: false, message: 'New local database unavailable.' });
     const localResult = await pool.query(`
@@ -1482,6 +2101,7 @@ app.get('/api/admin/dashboard', requireAdmin, async (_req, res) => {
         console.warn('Legacy dashboard counts unavailable:', err.message);
       }
     }
+    if (req.staffPermissions) return res.json({ success: true, summary: {} });
     return res.json({ success: true, oldDataUnavailable, oldDataMessage, summary: {
       ...counts,
       total_submitted: counts.new_farmer + counts.new_fpo + counts.old_farmer + counts.old_fpo,
@@ -1581,11 +2201,7 @@ async function start() {
         );
         await pool.query(questionMigration);
 
-        const kkIdMigration = await fs.readFile(
-          path.join(__dirname, 'migrations', '003_shared_kk_ids.sql'),
-          'utf8'
-        );
-        await pool.query(kkIdMigration);
+        // Obsolete KK migration intentionally skipped; AKK sequence is initialized by migration 002.
 
         await pool.query(`ALTER TABLE survey_responses ALTER COLUMN submitted_at DROP NOT NULL`);
         await pool.query(`ALTER TABLE survey_responses ALTER COLUMN submitted_at DROP DEFAULT`);
@@ -1632,14 +2248,17 @@ async function start() {
       console.warn('Neon verification failed; local survey remains online:', err.message);
     }
 
-    // Sequence alignment is allowed only after successful Neon read-only verification.
+    // New submissions use the independent AKK sequence in the new database.
+    // Historical Neon KK IDs are never used to align or modify the AKK sequence.
     if (legacyVerified) {
-      await alignNewIdSequenceWithLegacy();
+      console.log('Legacy database verified read-only; independent AKK sequence is ready.');
     } else {
-      throw new Error('Neon read-only verification failed. API startup blocked to prevent duplicate KK IDs.');
+      console.warn('Neon verification failed; disabling historical data access.');
+      await legacyPool.end().catch(() => {});
+      legacyPool = null;
     }
   } else {
-    throw new Error('LEGACY_DATABASE_URL is required for safe KK ID alignment. API startup blocked.');
+    console.warn('LEGACY_DATABASE_URL missing; historical KK data unavailable.');
   }
 
   app.listen(PORT, () => {

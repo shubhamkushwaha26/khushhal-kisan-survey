@@ -560,3 +560,47 @@
         column-gap: 7px !important;
     }
 }
+
+/* PUBLIC FARMER CUSTOMER SUPPORT */
+.farmer-support-widget {
+  width: min(100% - 32px, 760px);
+  margin: 22px auto;
+  padding: 18px;
+  border: 1px solid #cfe4d1;
+  border-radius: 16px;
+  background: #f5fbf5;
+  color: #173d25;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+.farmer-support-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.farmer-support-heading div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.farmer-support-heading strong { font-size: 16px; }
+.farmer-support-heading small,
+.farmer-support-hours { color: #55715c; font-size: 13px; }
+.farmer-support-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.farmer-support-actions a {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 125px;
+  padding: 11px 18px;
+  border-radius: 9px;
+  text-decoration: none;
+  font-weight: 700;
+}
+.farmer-support-call { background: #176b38; color: white; }
+.farmer-support-whatsapp { background: #e2f4e6; color: #176b38; border: 1px solid #b9ddc1; }

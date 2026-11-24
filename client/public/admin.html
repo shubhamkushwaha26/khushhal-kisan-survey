@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -7,10 +7,22 @@
 <style>
 :root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#203326;background:#f3f6f1}*{box-sizing:border-box}body{margin:0}header{background:#174d32;color:#fff;padding:20px max(18px,calc((100% - 1180px)/2))}main{max-width:1240px;margin:28px auto;padding:0 18px}.card{background:#fff;border:1px solid #e7eee8;border-radius:16px;padding:24px;margin-bottom:18px;box-shadow:0 8px 28px #183b250b}.hidden{display:none!important}input{display:block;width:100%;max-width:420px;padding:13px;margin:12px 0;border:1px solid #ccd7ce;border-radius:8px}button{border:0;border-radius:9px;padding:11px 16px;background:#17643b;color:#fff;cursor:pointer;font-weight:650;margin:4px;transition:background .15s ease,transform .15s ease}button:hover{background:#124d2e}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #9ac9a8;outline-offset:2px}button.secondary{background:#e9f1eb;color:#174d32}button:disabled{opacity:.45;cursor:not-allowed}.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.stat{background:#edf5ee;padding:16px;border-radius:10px}.stat strong{display:block;font-size:26px;margin-top:7px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.tabs button.active{background:#174d32}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:12px;text-align:left;border-bottom:1px solid #e4e9e4;vertical-align:top}th{background:#f5f8f4;font-size:13px;letter-spacing:.02em;white-space:nowrap}.muted{color:#68766d;font-size:13px}#message,#status{margin-top:12px;color:#9a3328}.status-good{color:#17643b!important}.actions{white-space:nowrap}.modal{position:fixed;inset:0;background:#10201699;display:flex;align-items:center;justify-content:center;padding:16px;z-index:5}.modal-box{background:#fff;border-radius:14px;max-width:760px;width:100%;max-height:85vh;overflow:auto;padding:22px}.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.detail{padding:10px;background:#f5f8f4;border-radius:8px;overflow-wrap:anywhere}.detail b{display:block;font-size:12px;color:#68766d;margin-bottom:5px}.pager{margin-top:14px}@media(max-width:650px){.stats{grid-template-columns:1fr}.detail-grid{grid-template-columns:1fr}header{padding:18px}}
 .api-settings{margin:12px 0 18px;padding:14px;border:1px solid #dce8de;background:#f7faf7;border-radius:12px}.api-settings label{display:block;font-weight:700;font-size:13px}.api-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.api-row input{flex:1;min-width:220px;max-width:none;margin:8px 0}.api-settings small{display:block;color:#65756a}.api-settings #apiStatus{margin-top:5px}.api-settings #apiStatus.good{color:#17643b}.api-settings #apiStatus.bad{color:#a83228}@media(max-width:650px){.api-row button{flex:1}.api-row input{min-width:100%}}
+
+.permission-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0 18px}
+.permission-grid label{display:flex;align-items:center;gap:8px;font-size:14px}
+.permission-grid input[type=checkbox],#supportActive,.staff-account input[type=checkbox]{width:auto;margin:0}
+.staff-account{border:1px solid #e2eae3;border-radius:12px;padding:16px;margin:14px 0;background:#fbfdfb}
+.staff-account h3{margin:0 0 6px}
+#supportSettings label{display:block;margin-top:10px;font-weight:600}
+#supportSettings label input[type=checkbox]{display:inline-block}
+#supportSettings .api-row>div{flex:1;min-width:150px}
+#supportSettings .api-row input{max-width:none}
+@media(max-width:650px){.permission-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
-<header><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2> Khushhal Kisan | <span data-en="Admin Panel">Admin Panel</span></h2><select id="adminLanguage" aria-label="Admin language" style="padding:9px;border-radius:8px"><option value="hi">à¤¹à¤¿à¤¨à¥à¤¦à¥€</option><option value="en">English</option><option value="as">à¦…à¦¸à¦®à§€à¦¯à¦¼à¦¾</option></select></div></header>
+<header><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2> Khushhal Kisan | <span data-en="Admin Panel">Admin Panel</span></h2><button type="button" id="settingsToggle" class="secondary" onclick="location.href='settings.html'" style="background:#fff;color:#174d32">Settings</button></div></header>
 <main>
 <section class="card" id="login">
 <h2 data-en='Admin Login'>Admin Login</h2>
@@ -62,6 +74,81 @@
 </div>
 <div id="recordPagination" class="pager"></div>
 </div>
+
+<div class="card hidden" id="settingsPanel">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <h2>Settings</h2>
+    <button type="button" class="secondary" id="closeSettings">Close Settings</button>
+  </div>
+  <div class="tabs">
+    <button type="button" id="staffSettingsTab">Staff Management</button>
+    <button type="button" class="secondary" id="supportSettingsTab">Support Management</button>
+    <button type="button" class="secondary" id="assignedSettingsTab">Assigned Staff</button>
+  </div>
+  <div id="settingsContent"></div>
+  <div class="card hidden" id="assignedStaff">
+    <h2>Assigned Staff</h2>
+    <p class="muted">Manage staff accounts and access permissions.</p>
+    <div class="table-wrap">
+      <table style="min-width:650px">
+        <thead><tr><th>Name</th><th>Staff ID</th><th>Status</th><th>Permissions</th><th>Action</th></tr></thead>
+        <tbody id="staffTableBody"><tr><td colspan="5">Loading...</td></tr></tbody>
+      </table>
+    </div>
+    <div id="staffEditor" class="staff-account hidden">
+      <h3>Edit Staff Account</h3>
+      <p id="staffEditorIdentity" class="muted"></p>
+      <label><input type="checkbox" id="editStaffActive"> Active account</label>
+      <h4>Access Permissions</h4>
+      <div class="permission-grid" id="editStaffPermissions"></div>
+      <button type="button" id="saveStaffEdit">Save Changes</button>
+      <button type="button" class="secondary" id="cancelStaffEdit">Cancel</button>
+      <button type="button" id="deleteStaffEdit" style="background:#a83228">Delete Staff</button>
+      <p id="staffEditMessage" class="muted"></p>
+    </div>
+  </div>
+</div>
+<div class="card hidden" id="staffManagement">
+  <h2>Staff Management</h2>
+  <p class="muted">Create staff accounts and control access permissions.</p>
+  <form id="staffCreateForm">
+    <input id="staffFullName" placeholder="Staff full name" required>
+    <input id="staffUsername" placeholder="Staff username / ID" minlength="3" maxlength="40" required>
+    <input id="staffPassword" type="password" placeholder="Initial password (minimum 8 characters)" minlength="8" required>
+    <h3>Access Permissions</h3>
+    <div class="permission-grid" id="newStaffPermissions">
+      <label><input type="checkbox" value="farmer"> Farmer submitted surveys</label>
+      <label><input type="checkbox" value="stakeholder"> FPO submitted surveys</label>
+      <label><input type="checkbox" value="newData" checked> New / Local data</label>
+      <label><input type="checkbox" value="oldData"> Old / Neon data</label>
+      <label><input type="checkbox" value="pendingFarmer"> Pending Farmer surveys</label>
+      <label><input type="checkbox" value="pendingStakeholder"> Pending FPO surveys</label>
+    </div>
+    <button type="submit">Create Staff Account</button>
+  </form>
+  <p id="staffMessage" class="muted"></p>
+  <div id="staffList"></div>
+  <button type="button" class="secondary" id="refreshStaff">Refresh Staff List</button>
+</div>
+
+<div class="card hidden" id="supportSettings">
+  <h2>Farmer Customer Support Settings</h2>
+  <p class="muted">These contact options will appear on the public survey page only when support is Active.</p>
+  <form id="supportForm">
+    <label><input type="checkbox" id="supportActive"> Enable public support</label>
+    <label for="supportCall">Call / Mobile Number</label>
+    <input id="supportCall" type="tel" placeholder="10-digit mobile number">
+    <label for="supportWhatsapp">WhatsApp Number</label>
+    <input id="supportWhatsapp" type="tel" placeholder="WhatsApp number with country code">
+    <div class="api-row">
+      <div><label for="supportFrom">Available From</label><input id="supportFrom" type="time"></div>
+      <div><label for="supportTo">Available Until</label><input id="supportTo" type="time"></div>
+    </div>
+    <button type="submit">Save Support Settings</button>
+  </form>
+  <p id="supportMessage" class="muted"></p>
+</div>
+
 </section>
 </main>
 
@@ -626,14 +713,43 @@ Object.assign(translations,{
  "recommend":["à¤…à¤¨à¥à¤¶à¤‚à¤¸à¤¾","à¦ªà§°à¦¾à¦®à§°à§à¦¶"],
  "referral":["à¤°à¥‡à¤«à¤°à¤²","à§°à§‡à¦«à¦¾à§°à§‡à¦²"],
 });
+const safeTranslations = {
+ "Admin Panel":["एडमिन पैनल","এডমিন পেনেল"],
+ "Admin Login":["एडमिन लॉगिन","এডমিন লগইন"],
+ "Login":["लॉगिन","লগইন"],
+ "Password":["पासवर्ड","পাছৱৰ্ড"],
+ "Admin Username":["एडमिन यूज़रनेम","এডমিন ব্যৱহাৰকাৰীৰ নাম"],
+ "Survey Dashboard":["सर्वे डैशबोर्ड","সমীক্ষা ডেশ্ববৰ্ড"],
+ "Submitted Surveys":["जमा किए गए सर्वे","জমা দিয়া সমীক্ষা"],
+ "Farmer Surveys":["किसान सर्वे","কৃষক সমীক্ষা"],
+ "FPO Surveys":["FPO सर्वे","FPO সমীক্ষা"],
+ "Pending Farmer":["अधूरे किसान सर्वे","অসম্পূৰ্ণ কৃষক সমীক্ষা"],
+ "Pending FPO":["अधूरे FPO सर्वे","অসম্পূৰ্ণ FPO সমীক্ষা"],
+ "Total Pending":["कुल अधूरे ड्राफ्ट","মুঠ অসম্পূৰ্ণ খচৰা"],
+ "Download All 6 Sheets":["सभी 6 शीट डाउनलोड करें","সকলো ৬খন শ্বীট ডাউনলোড কৰক"],
+ "Download Pending Drafts":["अधूरे ड्राफ्ट डाउनलोड करें","অসম্পূৰ্ণ খচৰা ডাউনলোড কৰক"],
+ "Refresh":["रिफ्रेश करें","সতেজ কৰক"],
+ "Logout":["लॉगआउट","লগআউট"],
+ "View Details":["पूरी जानकारी देखें","সম্পূৰ্ণ বিৱৰণ চাওক"],
+ "Close":["बंद करें","বন্ধ কৰক"],
+ "Name":["नाम","নাম"],
+ "Mobile":["मोबाइल","ম'বাইল"],
+ "Type":["प्रकार","ধৰণ"],
+ "Survey ID":["सर्वे आईडी","সমীক্ষা ID"],
+ "Pending ID":["ड्राफ्ट आईडी","খচৰা ID"],
+ "Invalid username or password.":["यूज़रनेम या पासवर्ड गलत है।","ব্যৱহাৰকাৰীৰ নাম বা পাছৱৰ্ড ভুল।"],
+ "Logging in...":["लॉगिन हो रहा है...","লগইন হৈ আছে..."]
+};
+
 function t(value){
  if(uiLang==='en') return value;
- const pair=translations[value];
- const localized=pair ? pair[uiLang==='as'?1:0] : '';
- return localized && !/[?ï¿½]/.test(localized) ? localized : value;
+ const safe = safeTranslations[value];
+ if(safe) return safe[uiLang==='as'?1:0];
+ const pair = translations[value];
+ const localized = pair ? pair[uiLang==='as'?1:0] : '';
+ return localized && !/[?ï¿½]|à¤|à¦|â€™|αñ|αª/.test(localized) ? localized : value;
 }
 function applyLanguage(){document.querySelectorAll('[data-en]').forEach(el=>el.textContent=t(el.getAttribute('data-en')));$('username').placeholder=t('Admin Username');$('password').placeholder=t('Password');}
-$('adminLanguage').value=uiLang;$('adminLanguage').addEventListener('change',e=>{uiLang=e.target.value;localStorage.setItem('kk_admin_language',uiLang);applyLanguage();if(token)loadRecords();});
 
 const esc=value=>String(value??'');
 function setMessage(text,good=false){$('status').textContent=t(text);$('status').className=good?'status-good':'';}
@@ -644,7 +760,7 @@ $('loginForm').addEventListener('submit',async e=>{
   const r=await fetch(API+'/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('username').value.trim(),password:$('password').value})});
   const d=await r.json();if(!r.ok)throw new Error(d.message||'Login failed');
   token=d.token;sessionStorage.setItem('kk_admin_token',token);
-  $('login').classList.add('hidden');$('dashboard').classList.remove('hidden');loadRecords();
+  $('login').classList.add('hidden');$('dashboard').classList.remove('hidden');loadRecords();loadStaff();loadSupportSettings();
  }catch(err){$('message').textContent=t(err.message);}
 });
 
@@ -816,63 +932,123 @@ async function loadRecords(){
   }
 }
 
-function showDetails(record){
+const QUESTION_DISPLAY_LABELS = Object.freeze({
+  khushhal_app_useful: 'Khushhal Kisan App Usefulness'
+});
+async function showDetails(record){
   const pending = currentTab.startsWith('pending_');
+  const recordId = String(record.id || '');
+
+  if (!/^\d+$/.test(recordId)) {
+    setMessage('Invalid record reference.');
+    return;
+  }
+
   $('modalTitle').textContent =
-    t(pending ? 'Pending' : 'Survey') + ' Â· ' +
-    (record.response_id || '');
-
-  const answers = record.answers && typeof record.answers === 'object'
-    ? record.answers
-    : {};
-
-  const details = {
-    [t(pending ? 'Pending ID' : 'Survey ID')]: record.response_id,
-    [t('Questionnaire Version')]: t(record.survey_version || 'legacy'),
-    [t('Record Status')]: t(record.status || ''),
-    [t('Survey Type')]: t(record.survey_type || ''),
-    [t('Language')]: record.language || '',
-    [t('Created At')]: record.created_at
-      ? new Date(record.created_at).toLocaleString('en-IN')
-      : '',
-    [t('Submitted At')]: record.submitted_at
-      ? new Date(record.submitted_at).toLocaleString('en-IN')
-      : t('Not submitted'),
-    ...Object.fromEntries(
-      Object.entries(answers).map(([key, value]) => [t(key) === key ? key.replaceAll('_', ' ') : t(key), value])
-    )
-  };
+    t(pending ? 'Pending' : 'Survey') + ' Â· ' + (record.response_id || '');
 
   $('detailContent').replaceChildren();
 
-  Object.entries(details).forEach(([key, value]) => {
-    const item = document.createElement('div');
-    item.className = 'detail';
+  const loading = document.createElement('p');
+  loading.textContent = t('Loading...');
+  $('detailContent').append(loading);
+  $('detailsModal').classList.remove('hidden');
 
-    const label = document.createElement('b');
-    label.textContent = key;
+  try {
+    let endpoint;
 
-    const content = document.createElement('span');
-    if (value && typeof value === 'object' && value.dataUrl) {
-      const preview = document.createElement('img');
-      preview.src = value.dataUrl;
-      preview.alt = value.fileName || 'Survey photo';
-      preview.style.cssText = 'display:block;max-width:220px;max-height:180px;object-fit:contain;margin-top:6px;border-radius:8px';
-      content.textContent = value.fileName || 'Uploaded photo';
-      content.append(preview);
+    if (pending) {
+      const type = record.survey_type;
+      if (!['farmer', 'stakeholder'].includes(type)) {
+        throw new Error('Invalid pending survey type.');
+      }
+      endpoint = '/api/admin/enquiry-detail/' + encodeURIComponent(recordId) +
+        '?type=' + encodeURIComponent(type);
     } else {
-      content.textContent = Array.isArray(value)
-        ? value.join(', ')
-        : (value && typeof value === 'object'
-            ? JSON.stringify(value)
-            : String(value ?? ''));
+      const type = record.survey_type;
+      if (!['farmer', 'stakeholder'].includes(type)) {
+        throw new Error('Invalid survey type.');
+      }
+      const source = record.source === 'Old (Neon)' ? 'old' : 'local';
+      endpoint = '/api/admin/survey-detail/' + source + '/' +
+        encodeURIComponent(recordId) + '?type=' + encodeURIComponent(type);
     }
 
-    item.append(label, content);
-    $('detailContent').append(item);
-  });
+    const response = await fetch(API + endpoint, {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const data = await response.json().catch(() => ({}));
 
-  $('detailsModal').classList.remove('hidden');
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Could not load record details.');
+    }
+
+    const detailRecord = pending ? data.pending : data.survey;
+    if (!detailRecord) throw new Error('Record details were not returned.');
+
+    const answers = detailRecord.answers && typeof detailRecord.answers === 'object'
+      ? detailRecord.answers
+      : {};
+
+    const details = {
+      [t(pending ? 'Pending ID' : 'Survey ID')]:
+        detailRecord.response_id || record.response_id || '',
+      [t('Questionnaire Version')]: t(detailRecord.survey_version || 'legacy'),
+      [t('Record Status')]: t(detailRecord.status || ''),
+      [t('Survey Type')]: t(detailRecord.survey_type || ''),
+      [t('Language')]: detailRecord.language || '',
+      [t('Created At')]: detailRecord.created_at
+        ? new Date(detailRecord.created_at).toLocaleString('en-IN')
+        : '',
+      [t('Submitted At')]: detailRecord.submitted_at
+        ? new Date(detailRecord.submitted_at).toLocaleString('en-IN')
+        : t('Not submitted'),
+      ...Object.fromEntries(
+        Object.entries(answers).map(([key, value]) => [
+          QUESTION_DISPLAY_LABELS[key] || (t(key) === key ? key.replaceAll('_', ' ') : t(key)),
+          value
+        ])
+      )
+    };
+
+    $('modalTitle').textContent =
+      t(pending ? 'Pending' : 'Survey') + ' Â· ' +
+      (detailRecord.response_id || record.response_id || '');
+
+    $('detailContent').replaceChildren();
+
+    Object.entries(details).forEach(([key, value]) => {
+      const item = document.createElement('div');
+      item.className = 'detail';
+
+      const label = document.createElement('b');
+      label.textContent = key;
+
+      const content = document.createElement('span');
+      if (value && typeof value === 'object' && value.dataUrl) {
+        const preview = document.createElement('img');
+        preview.src = value.dataUrl;
+        preview.alt = value.fileName || 'Survey photo';
+        preview.style.cssText = 'display:block;max-width:220px;max-height:180px;object-fit:contain;margin-top:6px;border-radius:8px';
+        content.textContent = value.fileName || 'Uploaded photo';
+        content.append(preview);
+      } else {
+        content.textContent = Array.isArray(value)
+          ? value.join(', ')
+          : (value && typeof value === 'object'
+              ? JSON.stringify(value)
+              : String(value ?? ''));
+      }
+
+      item.append(label, content);
+      $('detailContent').append(item);
+    });
+  } catch (error) {
+    $('detailContent').replaceChildren();
+    const message = document.createElement('p');
+    message.textContent = error.message;
+    $('detailContent').append(message);
+  }
 }
 function closeDetails(){$('detailsModal').classList.add('hidden');}
 $('detailsModal').addEventListener('click',e=>{if(e.target===$('detailsModal'))closeDetails();});
@@ -926,8 +1102,250 @@ async function downloadPendingExcel(){
   }catch(err){setMessage(err.message);}
 }
 
-function logout(){token='';sessionStorage.removeItem('kk_admin_token');$('dashboard').classList.add('hidden');$('login').classList.remove('hidden');$('password').value='';}
-applyLanguage();if(token){$('login').classList.add('hidden');$('dashboard').classList.remove('hidden');loadRecords();}
+
+const STAFF_PERMISSION_KEYS = ['farmer','stakeholder','newData','oldData','pendingFarmer','pendingStakeholder'];
+const STAFF_PERMISSION_LABELS = {
+  farmer:'Farmer submitted surveys',
+  stakeholder:'FPO submitted surveys',
+  newData:'New / Local data',
+  oldData:'Old / Neon data',
+  pendingFarmer:'Pending Farmer surveys',
+  pendingStakeholder:'Pending FPO surveys'
+};
+
+function staffMessage(message, good=false) {
+  $('staffMessage').textContent = message;
+  $('staffMessage').className = good ? 'status-good' : '';
+}
+
+function selectedStaffPermissions(container) {
+  const permissions = {};
+  container.querySelectorAll('input[type="checkbox"]').forEach(input => {
+    permissions[input.value] = input.checked;
+  });
+  return permissions;
+}
+
+async function loadStaff() {
+  const body = $('staffTableBody');
+  if (!body) return;
+  body.textContent = 'Loading staff accounts...';
+  try {
+    const response = await fetch(API + '/api/admin/staff', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error(data.message || 'Could not load staff accounts.');
+    body.replaceChildren();
+    (data.staff || []).forEach(person => {
+      const tr = document.createElement('tr');
+      [person.full_name, person.username, person.active ? 'Active' : 'Deactivated'].forEach(value => {
+        const td = document.createElement('td');
+        td.textContent = value || '';
+        tr.append(td);
+      });
+      const perms = document.createElement('td');
+      perms.textContent = STAFF_PERMISSION_KEYS.filter(key => person.permissions && person.permissions[key]).map(key => STAFF_PERMISSION_LABELS[key] || key).join(', ') || 'None';
+      const action = document.createElement('td');
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.textContent = 'Edit';
+      edit.addEventListener('click', () => openStaffEditor(person));
+      action.append(edit);
+      tr.append(perms, action);
+      body.append(tr);
+    });
+    if (!(data.staff || []).length) body.innerHTML = '<tr><td colspan="5">No staff accounts created yet.</td></tr>';
+  } catch (error) {
+    body.textContent = error.message;
+  }
+}
+
+let editingStaff = null;
+
+function openStaffEditor(person) {
+  editingStaff = person;
+  $('staffEditor').classList.remove('hidden');
+  $('staffEditorIdentity').textContent = (person.full_name || '') + ' (' + (person.username || '') + ')';
+  $('editStaffActive').checked = Boolean(person.active);
+  $('staffEditMessage').textContent = '';
+  const grid = $('editStaffPermissions');
+  grid.replaceChildren();
+  STAFF_PERMISSION_KEYS.forEach(key => {
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = key;
+    input.checked = Boolean(person.permissions && person.permissions[key]);
+    label.append(input, document.createTextNode(' ' + (STAFF_PERMISSION_LABELS[key] || key)));
+    grid.append(label);
+  });
+}
+
+async function saveStaffChanges() {
+  if (!editingStaff) return;
+  const permissions = selectedStaffPermissions($('editStaffPermissions'));
+  if (!Object.values(permissions).some(Boolean)) {
+    $('staffEditMessage').textContent = 'At least one permission must remain enabled.';
+    return;
+  }
+  const button = $('saveStaffEdit');
+  button.disabled = true;
+  try {
+    const response = await fetch(API + '/api/admin/staff/' + encodeURIComponent(editingStaff.id), {
+      method:'PATCH',
+      headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+      body:JSON.stringify({active:$('editStaffActive').checked,permissions})
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error(data.message || 'Update failed.');
+    editingStaff = null;
+    $('staffEditor').classList.add('hidden');
+    await loadStaff();
+  } catch(error) {
+    $('staffEditMessage').textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function deleteStaffAccount() {
+  if (!editingStaff) return;
+  if (!confirm('Delete this staff account? Survey records will remain safe.')) return;
+  const button = $('deleteStaffEdit');
+  button.disabled = true;
+  try {
+    const response = await fetch(API + '/api/admin/staff/' + encodeURIComponent(editingStaff.id), {
+      method:'DELETE',
+      headers:{Authorization:'Bearer '+token}
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error(data.message || 'Delete failed.');
+    editingStaff = null;
+    $('staffEditor').classList.add('hidden');
+    await loadStaff();
+  } catch(error) {
+    $('staffEditMessage').textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+$('staffCreateForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = $('staffCreateForm').querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const permissions = selectedStaffPermissions($('newStaffPermissions'));
+    if (!Object.values(permissions).some(Boolean)) {
+      throw new Error('Select at least one staff permission.');
+    }
+    const response = await fetch(API + '/api/admin/staff', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({
+        fullName: $('staffFullName').value.trim(),
+        username: $('staffUsername').value.trim(),
+        password: $('staffPassword').value,
+        permissions
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error(data.message || 'Staff account creation failed.');
+    $('staffCreateForm').reset();
+    staffMessage('Staff account created successfully.', true);
+    loadStaff();
+  } catch (error) {
+    staffMessage(error.message);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$('refreshStaff').addEventListener('click', loadStaff);
+
+async function loadSupportSettings() {
+  $('supportMessage').textContent = 'Loading support settings...';
+  try {
+    const response = await fetch(API + '/api/admin/support-settings', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error(data.message || 'Could not load support settings.');
+    const settings = data.settings || {};
+    $('supportActive').checked = Boolean(settings.active);
+    $('supportCall').value = settings.call_number || '';
+    $('supportWhatsapp').value = settings.whatsapp_number || '';
+    $('supportFrom').value = settings.available_from || '';
+    $('supportTo').value = settings.available_to || '';
+    $('supportMessage').textContent = 'Support settings loaded.';
+  } catch (error) {
+    $('supportMessage').textContent = error.message;
+  }
+}
+
+$('supportForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = $('supportForm').querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const response = await fetch(API + '/api/admin/support-settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({
+        active: $('supportActive').checked,
+        callNumber: $('supportCall').value.trim(),
+        whatsappNumber: $('supportWhatsapp').value.trim(),
+        availableFrom: $('supportFrom').value,
+        availableTo: $('supportTo').value
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error(data.message || 'Support settings could not be saved.');
+    $('supportMessage').textContent = 'Support settings saved successfully.';
+    $('supportMessage').className = 'status-good';
+  } catch (error) {
+    $('supportMessage').textContent = error.message;
+    $('supportMessage').className = '';
+  } finally {
+    button.disabled = false;
+  }
+});
+
+
+function showSettingsSection(section) {
+  const ids = {staff:'staffManagement',support:'supportSettings',assigned:'assignedStaff'};
+  Object.keys(ids).forEach(key => $(ids[key]).classList.toggle('hidden', key !== section));
+  ['staffSettingsTab','supportSettingsTab','assignedSettingsTab'].forEach(id => {
+    $(id).classList.remove('active');
+    $(id).classList.add('secondary');
+  });
+  const active = {staff:'staffSettingsTab',support:'supportSettingsTab',assigned:'assignedSettingsTab'}[section];
+  $(active).classList.add('active');
+  $(active).classList.remove('secondary');
+  if (section === 'assigned') loadStaff();
+}
+
+function initializeSettingsUI() {
+  const host = $('settingsContent');
+  host.appendChild($('staffManagement'));
+  host.appendChild($('supportSettings'));
+  $('settingsToggle').addEventListener('click', () => {
+    $('settingsPanel').classList.remove('hidden');
+    showSettingsSection('staff');
+  });
+  $('closeSettings').addEventListener('click', () => $('settingsPanel').classList.add('hidden'));
+  $('staffSettingsTab').addEventListener('click', () => showSettingsSection('staff'));
+  $('supportSettingsTab').addEventListener('click', () => showSettingsSection('support'));
+  $('assignedSettingsTab').addEventListener('click', () => showSettingsSection('assigned'));
+  $('saveStaffEdit').addEventListener('click', saveStaffChanges);
+  $('deleteStaffEdit').addEventListener('click', deleteStaffAccount);
+  $('cancelStaffEdit').addEventListener('click', () => {
+    editingStaff = null;
+    $('staffEditor').classList.add('hidden');
+  });
+}
+initializeSettingsUI();function logout(){token='';sessionStorage.removeItem('kk_admin_token');$('settingsPanel').classList.add('hidden');$('dashboard').classList.add('hidden');$('login').classList.remove('hidden');$('password').value='';}
+applyLanguage();if(token){$('login').classList.add('hidden');$('dashboard').classList.remove('hidden');loadRecords();loadStaff();loadSupportSettings();}
 </script>
 </body>
 </html>

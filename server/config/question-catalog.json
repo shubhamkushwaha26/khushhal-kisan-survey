@@ -122,7 +122,6 @@
     },
     {
       "id": "soil_report_photo",
-      "number": null,
       "hi": "मिट्टी जाँच की रिपोर्ट का फोटो अपलोड करें (वैकल्पिक)",
       "en": "Upload a photo of the soil test report (Optional)",
       "as": "মাটি পৰীক্ষাৰ প্ৰতিবেদনৰ ফটো আপলোড কৰক (ঐচ্ছিক)",
@@ -257,60 +256,12 @@
       "type": "radio"
     },
     {
-      "id": "ai_crop",
-      "number": "1",
-      "hi": "फसल अनुशंसा प्रणाली",
-      "en": "Crop Recommendation System",
-      "as": "শস্য পৰামৰ্শ ব্যৱস্থা",
-      "type": "rating"
-    },
-    {
-      "id": "ai_yield",
-      "number": "2",
-      "hi": "फसल उत्पादन पूर्वानुमान",
-      "en": "Crop Yield Prediction",
-      "as": "শস্য উৎপাদনৰ পূৰ্বানুমান",
-      "type": "rating"
-    },
-    {
-      "id": "ai_disease",
-      "number": "3",
-      "hi": "फसल रोग पहचान प्रणाली",
-      "en": "Disease Detection",
-      "as": "শস্যৰ ৰোগ চিনাক্তকৰণ ব্যৱস্থা",
-      "type": "rating"
-    },
-    {
-      "id": "ai_irrigation",
-      "number": "4",
-      "hi": "सिंचाई अनुशंसा प्रणाली",
-      "en": "Irrigation Recommendation",
-      "as": "জলসিঞ্চনৰ পৰামৰ্শ ব্যৱস্থা",
-      "type": "rating"
-    },
-    {
-      "id": "ai_pest_risk",
-      "number": "5",
-      "hi": "कीट एवं रोग जोखिम पूर्वानुमान",
-      "en": "Pest & Disease Risk Forecast",
-      "as": "কীট-পতংগ আৰু ৰোগৰ আশংকাৰ পূৰ্বানুমান",
-      "type": "rating"
-    },
-    {
-      "id": "ai_market",
-      "number": "6",
-      "hi": "बाजार मूल्य पूर्वानुमान",
-      "en": "Market Price Prediction",
-      "as": "বজাৰ মূল্যৰ পূৰ্বানুমান",
-      "type": "rating"
-    },
-    {
-      "id": "ai_cost",
-      "number": "7",
-      "hi": "खेती लागत अनुकूलन प्रणाली",
-      "en": "Cost Optimization Engine",
-      "as": "কৃষি ব্যয় অনুকূলন ব্যৱস্থা",
-      "type": "rating"
+      "id": "khushhal_app_useful",
+      "number": "26",
+      "hi": "क्या खुशहाल किसान मोबाइल ऐप के माध्यम से खेती से जुड़ी समस्याओं के समाधान, फसल की जानकारी, मौसम, सिंचाई एवं मंडी भाव जैसी सुविधाएँ उपलब्ध कराना आपके लिए उपयोगी रहेगा?",
+      "en": "Would it be useful to you if the Khushhal Kisan mobile app provided solutions to farming-related problems, crop information, weather updates, irrigation guidance and mandi prices?",
+      "as": "খুশহাল কিষাণ ম’বাইল এপৰ জৰিয়তে কৃষি-সম্পৰ্কীয় সমস্যাৰ সমাধান, শস্যৰ তথ্য, বতৰৰ আপডেট, জলসিঞ্চনৰ পৰামৰ্শ আৰু মাণ্ডীৰ মূল্যৰ দৰে সুবিধা প্ৰদান কৰিলে আপোনাৰ বাবে উপযোগী হ’বনে?",
+      "type": "radio"
     }
   ],
   "stakeholder": [
@@ -435,60 +386,12 @@
       "type": "checks"
     },
     {
-      "id": "ai_crop",
-      "number": "1",
-      "hi": "फसल अनुशंसा प्रणाली",
-      "en": "Crop Recommendation System",
-      "as": "শস্য পৰামৰ্শ ব্যৱস্থা",
-      "type": "rating"
-    },
-    {
-      "id": "ai_yield",
-      "number": "2",
-      "hi": "फसल उत्पादन पूर्वानुमान",
-      "en": "Crop Yield Prediction",
-      "as": "শস্য উৎপাদনৰ পূৰ্বানুমান",
-      "type": "rating"
-    },
-    {
-      "id": "ai_disease",
-      "number": "3",
-      "hi": "फसल रोग पहचान प्रणाली",
-      "en": "Disease Detection",
-      "as": "শস্যৰ ৰোগ চিনাক্তকৰণ ব্যৱস্থা",
-      "type": "rating"
-    },
-    {
-      "id": "ai_irrigation",
-      "number": "4",
-      "hi": "सिंचाई अनुशंसा प्रणाली",
-      "en": "Irrigation Recommendation",
-      "as": "জলসিঞ্চনৰ পৰামৰ্শ ব্যৱস্থা",
-      "type": "rating"
-    },
-    {
-      "id": "ai_pest_risk",
-      "number": "5",
-      "hi": "कीट एवं रोग जोखिम पूर्वानुमान",
-      "en": "Pest & Disease Risk Forecast",
-      "as": "কীট-পতংগ আৰু ৰোগৰ আশংকাৰ পূৰ্বানুমান",
-      "type": "rating"
-    },
-    {
-      "id": "ai_market",
-      "number": "6",
-      "hi": "बाजार मूल्य पूर्वानुमान",
-      "en": "Market Price Prediction",
-      "as": "বজাৰ মূল্যৰ পূৰ্বানুমান",
-      "type": "rating"
-    },
-    {
-      "id": "ai_cost",
-      "number": "7",
-      "hi": "खेती लागत अनुकूलन प्रणाली",
-      "en": "Cost Optimization Engine",
-      "as": "কৃষি ব্যয় অনুকূলন ব্যৱস্থা",
-      "type": "rating"
+      "id": "khushhal_app_useful",
+      "number": "12",
+      "hi": "क्या खुशहाल किसान मोबाइल ऐप के माध्यम से खेती से जुड़ी समस्याओं के समाधान, फसल की जानकारी, मौसम, सिंचाई एवं मंडी भाव जैसी सुविधाएँ उपलब्ध कराना आपके लिए उपयोगी रहेगा?",
+      "en": "Would it be useful to you if the Khushhal Kisan mobile app provided solutions to farming-related problems, crop information, weather updates, irrigation guidance and mandi prices?",
+      "as": "খুশহাল কিষাণ ম’বাইল এপৰ জৰিয়তে কৃষি-সম্পৰ্কীয় সমস্যাৰ সমাধান, শস্যৰ তথ্য, বতৰৰ আপডেট, জলসিঞ্চনৰ পৰামৰ্শ আৰু মাণ্ডীৰ মূল্যৰ দৰে সুবিধা প্ৰদান কৰিলে আপোনাৰ বাবে উপযোগী হ’বনে?",
+      "type": "radio"
     },
     {
       "id": "fpo_top_modules",

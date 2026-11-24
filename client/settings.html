@@ -1,0 +1,1452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Khushhal Kisan | Admin Panel</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#203326;background:#f3f6f1}*{box-sizing:border-box}body{margin:0}header{background:#174d32;color:#fff;padding:20px max(18px,calc((100% - 1180px)/2))}main{max-width:1240px;margin:28px auto;padding:0 18px}.card{background:#fff;border:1px solid #e7eee8;border-radius:16px;padding:24px;margin-bottom:18px;box-shadow:0 8px 28px #183b250b}.hidden{display:none!important}input{display:block;width:100%;max-width:420px;padding:13px;margin:12px 0;border:1px solid #ccd7ce;border-radius:8px}button{border:0;border-radius:9px;padding:11px 16px;background:#17643b;color:#fff;cursor:pointer;font-weight:650;margin:4px;transition:background .15s ease,transform .15s ease}button:hover{background:#124d2e}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #9ac9a8;outline-offset:2px}button.secondary{background:#e9f1eb;color:#174d32}button:disabled{opacity:.45;cursor:not-allowed}.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.stat{background:#edf5ee;padding:16px;border-radius:10px}.stat strong{display:block;font-size:26px;margin-top:7px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.tabs button.active{background:#174d32}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:12px;text-align:left;border-bottom:1px solid #e4e9e4;vertical-align:top}th{background:#f5f8f4;font-size:13px;letter-spacing:.02em;white-space:nowrap}.muted{color:#68766d;font-size:13px}#message,#status{margin-top:12px;color:#9a3328}.status-good{color:#17643b!important}.actions{white-space:nowrap}.modal{position:fixed;inset:0;background:#10201699;display:flex;align-items:center;justify-content:center;padding:16px;z-index:5}.modal-box{background:#fff;border-radius:14px;max-width:760px;width:100%;max-height:85vh;overflow:auto;padding:22px}.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.detail{padding:10px;background:#f5f8f4;border-radius:8px;overflow-wrap:anywhere}.detail b{display:block;font-size:12px;color:#68766d;margin-bottom:5px}.pager{margin-top:14px}@media(max-width:650px){.stats{grid-template-columns:1fr}.detail-grid{grid-template-columns:1fr}header{padding:18px}}
+.api-settings{margin:12px 0 18px;padding:14px;border:1px solid #dce8de;background:#f7faf7;border-radius:12px}.api-settings label{display:block;font-weight:700;font-size:13px}.api-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.api-row input{flex:1;min-width:220px;max-width:none;margin:8px 0}.api-settings small{display:block;color:#65756a}.api-settings #apiStatus{margin-top:5px}.api-settings #apiStatus.good{color:#17643b}.api-settings #apiStatus.bad{color:#a83228}@media(max-width:650px){.api-row button{flex:1}.api-row input{min-width:100%}}
+
+.permission-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0 18px}
+.permission-grid label{display:flex;align-items:center;gap:8px;font-size:14px}
+.permission-grid input[type=checkbox],#supportActive,.staff-account input[type=checkbox]{width:auto;margin:0}
+.staff-account{border:1px solid #e2eae3;border-radius:12px;padding:16px;margin:14px 0;background:#fbfdfb}
+.staff-account h3{margin:0 0 6px}
+#supportSettings label{display:block;margin-top:10px;font-weight:600}
+#supportSettings label input[type=checkbox]{display:inline-block}
+#supportSettings .api-row>div{flex:1;min-width:150px}
+#supportSettings .api-row input{max-width:none}
+@media(max-width:650px){.permission-grid{grid-template-columns:1fr}}
+
+#login{display:none!important}
+#dashboard>.card:not(#settingsPanel),
+#dashboard>#staffManagement,
+#dashboard>#supportSettings{display:none!important}
+</style>
+</head>
+<body>
+<header><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2> Khushhal Kisan | <span data-en="Admin Panel">Admin Panel</span></h2><button type="button" id="settingsToggle" class="secondary" onclick="location.href='admin.html'" style="background:#fff;color:#174d32">Back to Admin Dashboard</button></div></header>
+<main>
+<section class="card" id="login">
+<h2 data-en='Admin Login'>Admin Login</h2>
+<div class="api-settings">
+<label for="apiBaseUrl">API Server URL</label>
+<div class="api-row"><input id="apiBaseUrl" type="url" placeholder="https://your-api.onrender.com"><button type="button" class="secondary" id="saveApiUrl">Save API</button><button type="button" id="testApiUrl">Test Connection</button></div>
+<small id="apiStatus">Set the deployed API URL if the dashboard cannot fetch records.</small>
+</div>
+<form id="loginForm">
+<input id="username" autocomplete="username" placeholder="Admin Username" required>
+<input id="password" type="password" autocomplete="current-password" placeholder="Password" required>
+<button type="submit" data-en="Login">Login</button>
+</form><div id="message"></div>
+</section>
+
+<section id="dashboard">
+<div class="card">
+<h2 data-en='Survey Dashboard'>Survey Dashboard</h2>
+<div class="stats">
+<div class="stat"><span data-en='Submitted Surveys'>Submitted Surveys</span><strong id="submitted">0</strong></div>
+<div class="stat"><span data-en='New Version Surveys'>New Version Surveys</span><strong id="newSubmitted">0</strong></div>
+<div class="stat"><span data-en='Historical Surveys'>Historical Surveys</span><strong id="oldSubmitted">0</strong></div>
+<div class="stat"><span data-en='Farmer Surveys'>Farmer Surveys</span><strong id="farmers">0</strong></div>
+<div class="stat"><span data-en='FPO Surveys'>FPO Surveys</span><strong id="stakeholders">0</strong></div>
+<div class="stat"><span data-en='Pending Farmer'>Pending Farmer</span><strong id="pendingFarmers">0</strong></div>
+<div class="stat"><span data-en='Pending FPO'>Pending FPO</span><strong id="pendingStakeholders">0</strong></div>
+<div class="stat"><span data-en='Total Pending'>Total Pending</span><strong id="enquiries">0</strong></div>
+</div>
+<div class="tabs">
+<button id="farmerTab" class="active" onclick="switchTab('farmer')" data-en='Farmer Surveys'>Farmer Surveys</button>
+<button id="stakeholderTab" class="secondary" onclick="switchTab('stakeholder')" data-en='FPO Surveys'>FPO Surveys</button>
+<button id="pendingFarmerTab" class="secondary" onclick="switchTab('pending_farmer')" data-en='Pending Farmer'>Pending Farmer</button>
+<button id="pendingStakeholderTab" class="secondary" onclick="switchTab('pending_stakeholder')" data-en='Pending FPO'>Pending FPO</button>
+</div>
+<button class="secondary" onclick="loadRecords()" data-en='Refresh'>Refresh</button>
+<button onclick="downloadExcel()" data-en='Download All 6 Sheets'>Download All 6 Sheets</button>
+<button class="secondary" onclick="downloadPendingExcel()" data-en='Download Pending Drafts'>Download Pending Drafts</button>
+<button class="secondary" onclick="logout()" data-en='Logout'>Logout</button>
+<p id="status"></p>
+</div>
+
+<div class="card">
+<h3 id="listTitle">Submitted Surveys</h3>
+<div class="table-wrap">
+<table>
+<thead id="tableHead"></thead>
+<tbody id="records"></tbody>
+</table>
+</div>
+<div id="recordPagination" class="pager"></div>
+</div>
+
+<div class="card" id="settingsPanel">
+<div class="card" id="languageSettings" style="background:#f7faf7;border:1px solid #dce8de;margin-bottom:16px">
+  <h3>Language &amp; Preferences</h3>
+  <p class="muted">Choose the language used in the Admin Panel.</p>
+  <label for="adminLanguage">Admin Panel Language</label>
+  <select id="adminLanguage" aria-label="Admin language" style="padding:10px;border:1px solid #ccd7ce;border-radius:8px;min-width:190px">
+    <option value="hi">हिन्दी</option>
+    <option value="en">English</option>
+    <option value="as">অসমীয়া</option>
+  </select>
+</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <h2>Settings</h2>
+    <button type="button" class="secondary" id="closeSettings" onclick="location.href='admin.html'">Back to Admin Dashboard</button>
+  </div>
+  <div class="tabs">
+    <button type="button" id="staffSettingsTab">Staff Management</button>
+    <button type="button" class="secondary" id="supportSettingsTab">Support Management</button>
+    <button type="button" class="secondary" id="assignedSettingsTab">Assigned Staff</button>
+  </div>
+  <div id="settingsContent"></div>
+  <div class="card hidden" id="assignedStaff">
+    <h2>Assigned Staff</h2>
+    <p class="muted">Manage staff accounts and access permissions.</p>
+    <div class="table-wrap">
+      <table style="min-width:650px">
+        <thead><tr><th>Name</th><th>Staff ID</th><th>Status</th><th>Permissions</th><th>Action</th></tr></thead>
+        <tbody id="staffTableBody"><tr><td colspan="5">Loading...</td></tr></tbody>
+      </table>
+    </div>
+    <div id="staffDetailsPanel" class="staff-account hidden" style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <h3>Staff Account Details</h3>
+        <button type="button" class="secondary" id="backToStaffList">Back to Staff List</button>
+      </div>
+      <div id="staffDetailsContent" class="detail-grid"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
+        <button type="button" id="editStaffFromDetails">Edit Staff Account</button>
+      </div>
+    </div>
+    <div id="staffEditor" class="staff-account hidden">
+      <h3>Edit Staff Account</h3>
+      <p id="staffEditorIdentity" class="muted"></p>
+      <label><input type="checkbox" id="editStaffActive"> Active account</label>
+      <h4>Access Permissions</h4>
+      <div class="permission-grid" id="editStaffPermissions"></div>
+      <button type="button" id="saveStaffEdit">Save Changes</button>
+      <button type="button" class="secondary" id="cancelStaffEdit">Cancel</button>
+      <button type="button" id="deleteStaffEdit" style="background:#a83228">Delete Staff</button>
+      <p id="staffEditMessage" class="muted"></p>
+    </div>
+  </div>
+</div>
+<div class="card hidden" id="staffManagement">
+  <h2>Staff Management</h2>
+  <p class="muted">Create staff accounts and control access permissions.</p>
+  <form id="staffCreateForm">
+    <input id="staffFullName" placeholder="Staff full name" required>
+    <input id="staffUsername" placeholder="Staff username / ID" minlength="3" maxlength="40" required>
+    <input id="staffPassword" type="password" placeholder="Initial password (minimum 8 characters)" minlength="8" required>
+    <h3>Access Permissions</h3>
+    <div class="permission-grid" id="newStaffPermissions">
+      <label><input type="checkbox" value="farmer"> Farmer submitted surveys</label>
+      <label><input type="checkbox" value="stakeholder"> FPO submitted surveys</label>
+      <label><input type="checkbox" value="newData" checked> New / Local data</label>
+      <label><input type="checkbox" value="oldData"> Old / Neon data</label>
+      <label><input type="checkbox" value="pendingFarmer"> Pending Farmer surveys</label>
+      <label><input type="checkbox" value="pendingStakeholder"> Pending FPO surveys</label>
+    </div>
+    <button type="submit">Create Staff Account</button>
+  </form>
+  <p id="staffMessage" class="muted"></p>
+  <div id="staffList"></div>
+  <button type="button" class="secondary" id="refreshStaff">Refresh Staff List</button>
+</div>
+
+<div class="card hidden" id="supportSettings">
+  <h2>Farmer Customer Support Settings</h2>
+  <p class="muted">These contact options will appear on the public survey page only when support is Active.</p>
+  <form id="supportForm">
+    <label><input type="checkbox" id="supportActive"> Enable public support</label>
+    <label for="supportCall">Call / Mobile Number</label>
+    <input id="supportCall" type="tel" placeholder="10-digit mobile number">
+    <label for="supportWhatsapp">WhatsApp Number</label>
+    <input id="supportWhatsapp" type="tel" placeholder="WhatsApp number with country code">
+    <div class="api-row">
+      <div><label for="supportFrom">Available From</label><input id="supportFrom" type="time"></div>
+      <div><label for="supportTo">Available Until</label><input id="supportTo" type="time"></div>
+    </div>
+    <button type="submit">Save Support Settings</button>
+  </form>
+  <p id="supportMessage" class="muted"></p>
+</div>
+
+</section>
+</main>
+
+<div id="detailsModal" class="modal hidden" role="dialog" aria-modal="true">
+ <div class="modal-box">
+  <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+   <h3 id="modalTitle">Details</h3><button class="secondary" onclick="closeDetails()" data-en="Close">Close</button>
+  </div>
+  <div id="detailContent" class="detail-grid"></div>
+ </div>
+</div>
+
+<script>
+let API=(localStorage.getItem('kk_admin_api_url')||window.KK_API_URL||(location.hostname==='localhost'||location.hostname==='127.0.0.1'?'http://localhost:5000':'https://khushhal-kisan-api.onrender.com')).replace(/\/$/,'');
+let token=sessionStorage.getItem('kk_admin_token')||'';
+let currentTab='farmer',currentOffset=0,uiLang=localStorage.getItem('kk_admin_language')||'hi';
+const pageSize=50;
+const $=id=>document.getElementById(id);
+$('apiBaseUrl').value=API;
+const apiStatus=(message,ok)=>{$('apiStatus').textContent=message;$('apiStatus').className=ok?'good':'bad';};
+$('saveApiUrl').addEventListener('click',()=>{
+ const value=$('apiBaseUrl').value.trim().replace(/\/$/,'');
+ if(!/^https?:\/\//i.test(value)){apiStatus('Enter a valid URL beginning with https:// or http://',false);return;}
+ API=value;localStorage.setItem('kk_admin_api_url',API);apiStatus('API URL saved. You can now log in or refresh records.',true);
+});
+$('testApiUrl').addEventListener('click',async()=>{
+ const value=$('apiBaseUrl').value.trim().replace(/\/$/,'');
+ if(!/^https?:\/\//i.test(value)){apiStatus('Enter a valid API URL first.',false);return;}
+ apiStatus('Testing API and database connectionï¿½',true);
+ try{const response=await fetch(value+'/api/health');const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||data.database||'API health check failed');apiStatus('Connected successfully. Database: '+(data.database||'connected'),true);}
+ catch(error){apiStatus('Connection failed: '+error.message+' ï¿½ check API URL, server status and CLIENT_ORIGIN.',false);}
+});
+const translations={
+  "Admin Panel": [
+    "??????? ????",
+    "????? ???????"
+  ],
+  "Admin Login": [
+    "????? ?????",
+    "????? ????"
+  ],
+  "Survey Dashboard": [
+    "????? ????????",
+    "??????? ????????"
+  ],
+  "Submitted Surveys": [
+    "??? ??? ?? ?????",
+    "??? ????? ???????"
+  ],
+  "Farmer Surveys": [
+    "????? ?????",
+    "???? ???????"
+  ],
+  "FPO Surveys": [
+    "FPO ?????",
+    "FPO ???????"
+  ],
+  "Pending Farmer": [
+    "????? ????? ?????",
+    "???? ???? ???????"
+  ],
+  "Pending FPO": [
+    "????? FPO ?????",
+    "???? FPO ???????"
+  ],
+  "Total Pending": [
+    "??? ????? ?????",
+    "??? ???? ???????"
+  ],
+  "Pending Enquiries": [
+    "????? ??????",
+    "???? ?????????"
+  ],
+  "KK ID": [
+    "KK ????",
+    "KK ????"
+  ],
+  "EKK ID": [
+    "EKK ????",
+    "EKK ????"
+  ],
+  "No records found.": [
+    "??? ??????? ???? ?????",
+    "???? ?????? ???? ??ï¿½??"
+  ],
+  "Pending": [
+    "?????",
+    "????"
+  ],
+  "Enquiries": [
+    "????? ?????",
+    "????????? ???????"
+  ],
+  "Farmer Enquiries": [
+    "????? ?? ????? ?????",
+    "????? ????????? ???????"
+  ],
+  "Refresh": [
+    "???????",
+    "???????"
+  ],
+  "Download Excel": [
+    "?????? ???????",
+    "?????? ???????"
+  ],
+  "Download All 6 Sheets": ["????? ??? ???? ?????? ??????? ????", "?????? ?????? ?????? ??????? ???"],
+  "New Version Surveys": ["?? ?????", "???? ???????"],
+  "Historical Surveys": ["?????? ?????", "????? ???????"],
+  "Survey ID": ["????? ????", "???????? ID"],
+  "Pending ID": ["????? ????", "???? ID"],
+  "Questionnaire Version": ["?????????? ???????", "??????????? ???????"],
+  "All six sheets downloaded successfully.": ["????? ??? ??????????? ??????? ?? ????", "??????? ????? ??????? ??????? ?????"],
+  "Logout": [
+    "??????",
+    "?? ???"
+  ],
+  "Login": [
+    "?????",
+    "????"
+  ],
+  "Password": [
+    "???????",
+    "????????"
+  ],
+  "Admin Username": [
+    "????? ????????",
+    "????? ???????????? ???"
+  ],
+  "View Details": [
+    "????? ?????",
+    "????????? ????"
+  ],
+  "Close": [
+    "??? ????",
+    "???? ???"
+  ],
+  "Name": [
+    "???",
+    "???"
+  ],
+  "Mobile": [
+    "??????",
+    "??????"
+  ],
+  "Type": [
+    "??????",
+    "???"
+  ],
+  "Submitted": [
+    "??? ???? ???",
+    "??? ????? ????"
+  ],
+  "Village / Location": [
+    "???? / ?????",
+    "???? / ?????"
+  ],
+  "Last Updated": [
+    "????? ?????",
+    "??? ?????"
+  ],
+  "Details": [
+    "?????",
+    "???????"
+  ],
+  "Record Status": [
+    "??????? ?? ??????",
+    "??????? ??????"
+  ],
+  "Survey Type": [
+    "????? ?? ??????",
+    "???????? ???"
+  ],
+  "Language": [
+    "????",
+    "????"
+  ],
+  "Created At": [
+    "????? ?? ???",
+    "???????? ????"
+  ],
+  "Submitted At": [
+    "??? ???? ?? ???",
+    "??? ?????? ????"
+  ],
+  "Loading...": [
+    "??? ?? ??? ??...",
+    "??? ?? ???..."
+  ],
+  "Preparing Excel...": [
+    "?????? ????? ?? ??? ??...",
+    "?????? ?????? ?? ???..."
+  ],
+  "Excel downloaded successfully.": [
+    "?????? ??????????? ??????? ????",
+    "?????? ??????? ??????? ?????"
+  ],
+  "Showing": [
+    "???? ??? ??",
+    "?????? ???"
+  ],
+  "of": [
+    "??? ??",
+    "? ?????"
+  ],
+  "Logging in...": [
+    "????? ?? ??? ??...",
+    "???? ?? ???..."
+  ],
+  "Invalid login details.": [
+    "????? ?? ??????? ??? ???",
+    "????? ???? ??? ?????"
+  ],
+  "Invalid username or password.": [
+    "???????? ?? ??????? ??? ???",
+    "???????????? ??? ?? ???????? ??? ?????"
+  ],
+  "Login failed": [
+    "????? ???? ???",
+    "???? ???? ????"
+  ],
+  "Could not load records": [
+    "??????? ??? ???? ?? ???",
+    "?????? ??? ???? ????????"
+  ],
+  "Could not load dashboard": [
+    "???????? ??? ???? ?? ???",
+    "???????? ??? ???? ????????"
+  ],
+  "Excel export failed": [
+    "?????? ??????? ????",
+    "?????? ??????? ????"
+  ],
+  "Not available": [
+    "?????? ????",
+    "?????? ????"
+  ],
+  "Not submitted": [
+    "??? ???? ???",
+    "??? ????? ???? ???"
+  ],
+  "Previous": [
+    "?????",
+    "??????"
+  ],
+  "Next": [
+    "????",
+    "???????"
+  ],
+  "completed": [
+    "???? ???",
+    "????????"
+  ],
+  "draft": [
+    "?????",
+    "?????"
+  ],
+  "farmer": [
+    "?????",
+    "????"
+  ],
+  "stakeholder": [
+    "???????",
+    "???????"
+  ],
+  "name": [
+    "name",
+    "name"
+  ],
+  "mobile": [
+    "mobile",
+    "mobile"
+  ],
+  "email": [
+    "email",
+    "email"
+  ],
+  "location": [
+    "location",
+    "location"
+  ],
+  "age": [
+    "age",
+    "age"
+  ],
+  "experience": [
+    "experience",
+    "experience"
+  ],
+  "land": [
+    "land",
+    "land"
+  ],
+  "crops": [
+    "crops",
+    "crops"
+  ],
+  "landOwnership": [
+    "landOwnership",
+    "landOwnership"
+  ],
+  "topProblems": [
+    "topProblems",
+    "topProblems"
+  ],
+  "seriousProblems": [
+    "seriousProblems",
+    "seriousProblems"
+  ],
+  "financialLoss": [
+    "financialLoss",
+    "financialLoss"
+  ],
+  "diseaseExperience": [
+    "diseaseExperience",
+    "diseaseExperience"
+  ],
+  "infoSources": [
+    "infoSources",
+    "infoSources"
+  ],
+  "infoGaps": [
+    "infoGaps",
+    "infoGaps"
+  ],
+  "seasonCost": [
+    "seasonCost",
+    "seasonCost"
+  ],
+  "smartphone": [
+    "smartphone",
+    "smartphone"
+  ],
+  "appsUsed": [
+    "appsUsed",
+    "appsUsed"
+  ],
+  "photoDiagnosis": [
+    "photoDiagnosis",
+    "photoDiagnosis"
+  ],
+  "digitalNeeds": [
+    "digitalNeeds",
+    "digitalNeeds"
+  ],
+  "languagePreference": [
+    "languagePreference",
+    "languagePreference"
+  ],
+  "trustFactors": [
+    "trustFactors",
+    "trustFactors"
+  ],
+  "digitalBarriers": [
+    "digitalBarriers",
+    "digitalBarriers"
+  ],
+  "useIntent": [
+    "useIntent",
+    "useIntent"
+  ],
+  "paymentModel": [
+    "paymentModel",
+    "paymentModel"
+  ],
+  "willingnessToPay": [
+    "willingnessToPay",
+    "willingnessToPay"
+  ],
+  "paymentConditions": [
+    "paymentConditions",
+    "paymentConditions"
+  ],
+  "whatsappGroup": [
+    "whatsappGroup",
+    "whatsappGroup"
+  ],
+  "farmersSupported": [
+    "farmersSupported",
+    "farmersSupported"
+  ],
+  "stakeholderProblems": [
+    "stakeholderProblems",
+    "stakeholderProblems"
+  ],
+  "guidanceProcess": [
+    "guidanceProcess",
+    "guidanceProcess"
+  ],
+  "stakeholderLoss": [
+    "stakeholderLoss",
+    "stakeholderLoss"
+  ],
+  "digitalTools": [
+    "digitalTools",
+    "digitalTools"
+  ],
+  "valueCreation": [
+    "valueCreation",
+    "valueCreation"
+  ],
+  "pilotReadiness": [
+    "pilotReadiness",
+    "pilotReadiness"
+  ],
+  "adoptionNeeds": [
+    "adoptionNeeds",
+    "adoptionNeeds"
+  ],
+  "sponsorship": [
+    "sponsorship",
+    "sponsorship"
+  ],
+  "pilot": [
+    "pilot",
+    "pilot"
+  ],
+  "recentProblem": [
+    "recentProblem",
+    "recentProblem"
+  ],
+  "timelyBenefit": [
+    "timelyBenefit",
+    "timelyBenefit"
+  ],
+  "paidServices": [
+    "paidServices",
+    "paidServices"
+  ],
+  "trustEvidence": [
+    "trustEvidence",
+    "trustEvidence"
+  ],
+  "firstProblem": [
+    "firstProblem",
+    "firstProblem"
+  ],
+  "recommend": [
+    "recommend",
+    "recommend"
+  ],
+  "referral": [
+    "referral",
+    "referral"
+  ],
+'FPO Surveys':['FPO ?????','FPO ???????'],
+  'Pending Enquiries':['\u0932\u0902\u092c\u093f\u0924 \u092a\u0942\u091b\u0924\u093e\u091b','\u09ac\u09be\u0995\u09c0 \u09a5\u0995\u09be \u09aa\u09cd\u09f0\u09b6\u09cd\u09a8'],
+  'Enquiries':['\u092a\u0942\u091b\u0924\u093e\u091b','\u09aa\u09cd\u09f0\u09b6\u09cd\u09a8'],
+  'Survey':['\u0938\u0930\u094d\u0935\u0947','\u09b8\u09ae\u09c0\u0995\u09cd\u09b7\u09be'],
+  'Pending':['\u0932\u0902\u092c\u093f\u0924','\u09ac\u09be\u0995\u09c0'],
+  'Record Status':['\u0930\u093f\u0915\u0949\u0930\u094d\u0921 \u0938\u094d\u0925\u093f\u0924\u093f','\u09f0\u09c7\u0995\u09f0\u09cd\u09a1\u09f0 \u0985\u09f1\u09b8\u09cd\u09a5\u09be'],
+  'Survey Type':['\u0938\u0930\u094d\u0935\u0947 \u092a\u094d\u0930\u0915\u093e\u0930','\u09b8\u09ae\u09c0\u0995\u09cd\u09b7\u09be\u09f0 \u09a7\u09f0\u09a3'],
+  'Language':['\u092d\u093e\u0937\u093e','\u09ad\u09be\u09b7\u09be'],
+  'Created At':['\u092c\u0928\u093e\u0928\u0947 \u0915\u0940 \u0924\u093e\u0930\u0940\u0916','\u09b8\u09c3\u09b7\u09cd\u099f\u09bf\u09f0 \u09a4\u09be\u09f0\u09bf\u0996'],
+  'Submitted At':['\u091c\u092e\u093e \u0915\u0930\u0928\u0947 \u0915\u0940 \u0924\u093e\u0930\u0940\u0916','\u099c\u09ae\u09be \u09a6\u09bf\u09af\u09bc\u09be\u09f0 \u09a4\u09be\u09f0\u09bf\u0996'],
+  'Not submitted':['\u091c\u092e\u093e \u0928\u0939\u0940\u0902 \u0939\u0941\u0906','\u099c\u09ae\u09be \u09a6\u09bf\u09af\u09bc\u09be \u09b9\u09cb\u09f1\u09be \u09a8\u09be\u0987'],
+  'Showing':['\u0926\u093f\u0916\u093e\u092f\u093e \u091c\u093e \u0930\u0939\u093e \u0939\u0948','\u09a6\u09c7\u0996\u09c1\u0993\u09f1\u09be \u09b9\u09c8\u099b\u09c7'],
+  'of':['\u092e\u0947\u0902 \u0938\u0947','\u09f0 \u09ad\u09bf\u09a4\u09f0'],
+  'farmer':['\u0915\u093f\u0938\u093e\u0928','\u0995\u09c3\u09b7\u0995'],
+  'stakeholder':['FPO','FPO'],
+  'completed':['\u091c\u092e\u093e \u0939\u0941\u0906','\u09b8\u09ae\u09cd\u09aa\u09c2\u09f0\u09cd\u09a3'],
+  'draft':['\u0905\u0927\u0942\u0930\u093e','\u09ac\u09be\u0995\u09c0'],
+  'Pending FPO':['????? FPO ?????','???? FPO ???????'],
+  'new':['???','????'],
+  'legacy':['??????','?????']
+};
+Object.assign(translations,{
+ "Admin Panel":["à¤à¤¡à¤®à¤¿à¤¨ à¤ªà¥ˆà¤¨à¤²","à¦à¦¡à¦®à¦¿à¦¨ à¦ªà§‡à¦¨à§‡à¦²"],
+ "Admin Login":["à¤à¤¡à¤®à¤¿à¤¨ à¤²à¥‰à¤—à¤¿à¤¨","à¦à¦¡à¦®à¦¿à¦¨ à¦²à¦—à¦‡à¦¨"],
+ "Survey Dashboard":["à¤¸à¤°à¥à¤µà¥‡ à¤¡à¥ˆà¤¶à¤¬à¥‹à¤°à¥à¤¡","à¦¸à¦®à§€à¦•à§à¦·à¦¾ à¦¡à§‡à¦¶à§à¦¬à¦¬â€™à§°à§à¦¡"],
+ "Submitted Surveys":["à¤œà¤®à¤¾ à¤•à¤¿à¤ à¤—à¤ à¤¸à¤°à¥à¤µà¥‡","à¦œà¦®à¦¾ à¦¦à¦¿à¦¯à¦¼à¦¾ à¦¸à¦®à§€à¦•à§à¦·à¦¾"],
+ "Farmer Surveys":["à¤•à¤¿à¤¸à¤¾à¤¨ à¤¸à¤°à¥à¤µà¥‡","à¦•à§ƒà¦·à¦• à¦¸à¦®à§€à¦•à§à¦·à¦¾"],
+ "FPO Surveys":["FPO à¤¸à¤°à¥à¤µà¥‡","FPO à¦¸à¦®à§€à¦•à§à¦·à¦¾"],
+ "Pending Farmer":["à¤…à¤§à¥‚à¤°à¥‡ à¤•à¤¿à¤¸à¤¾à¤¨ à¤¸à¤°à¥à¤µà¥‡","à¦…à¦¸à¦®à§à¦ªà§‚à§°à§à¦£ à¦•à§ƒà¦·à¦• à¦¸à¦®à§€à¦•à§à¦·à¦¾"],
+ "Pending FPO":["à¤…à¤§à¥‚à¤°à¥‡ FPO à¤¸à¤°à¥à¤µà¥‡","à¦…à¦¸à¦®à§à¦ªà§‚à§°à§à¦£ FPO à¦¸à¦®à§€à¦•à§à¦·à¦¾"],
+ "Total Pending":["à¤•à¥à¤² à¤…à¤§à¥‚à¤°à¥‡ à¤¡à¥à¤°à¤¾à¤«à¥à¤Ÿ","à¦®à§à¦  à¦…à¦¸à¦®à§à¦ªà§‚à§°à§à¦£ à¦–à¦šà§°à¦¾"],
+ "Download All 6 Sheets":["à¤¸à¤­à¥€ à¤ªà¥à¤°à¤¾à¤¨à¥‡ à¤”à¤° à¤¨à¤ à¤¸à¤°à¥à¤µà¥‡ à¤¡à¤¾à¤‰à¤¨à¤²à¥‹à¤¡ à¤•à¤°à¥‡à¤‚","à¦¸à¦•à¦²à§‹ à¦ªà§à§°à¦£à¦¿ à¦†à§°à§ à¦¨à¦¤à§à¦¨ à¦¸à¦®à§€à¦•à§à¦·à¦¾ à¦¡à¦¾à¦‰à¦¨à¦²à§‹à¦¡ à¦•à§°à¦•"],
+ "Download Pending Drafts":["à¤…à¤§à¥‚à¤°à¥‡ à¤¡à¥à¤°à¤¾à¤«à¥à¤Ÿ à¤¡à¤¾à¤‰à¤¨à¤²à¥‹à¤¡ à¤•à¤°à¥‡à¤‚","à¦…à¦¸à¦®à§à¦ªà§‚à§°à§à¦£ à¦–à¦šà§°à¦¾ à¦¡à¦¾à¦‰à¦¨à¦²à§‹à¦¡ à¦•à§°à¦•"],
+ "New Version Surveys":["à¤¨à¤ à¤¸à¤°à¥à¤µà¥‡","à¦¨à¦¤à§à¦¨ à¦¸à¦®à§€à¦•à§à¦·à¦¾"],
+ "Historical Surveys":["à¤ªà¥à¤°à¤¾à¤¨à¥‡ à¤¸à¤°à¥à¤µà¥‡","à¦ªà§à§°à¦£à¦¿ à¦¸à¦®à§€à¦•à§à¦·à¦¾"],
+ "Survey ID":["à¤¸à¤°à¥à¤µà¥‡ à¤†à¤ˆà¤¡à¥€","à¦¸à¦®à§€à¦•à§à¦·à¦¾ ID"],
+ "Pending ID":["à¤¡à¥à¤°à¤¾à¤«à¥à¤Ÿ à¤†à¤ˆà¤¡à¥€","à¦–à¦šà§°à¦¾ ID"],
+ "View Details":["à¤ªà¥‚à¤°à¥€ à¤œà¤¾à¤¨à¤•à¤¾à¤°à¥€ à¤¦à¥‡à¤–à¥‡à¤‚","à¦¸à¦®à§à¦ªà§‚à§°à§à¦£ à¦¬à¦¿à§±à§°à¦£ à¦šà¦¾à¦“à¦•"],
+ "Close":["à¤¬à¤‚à¤¦ à¤•à¤°à¥‡à¤‚","à¦¬à¦¨à§à¦§ à¦•à§°à¦•"],
+ "Name":["à¤¨à¤¾à¤®","à¦¨à¦¾à¦®"],
+ "Mobile":["à¤®à¥‹à¤¬à¤¾à¤‡à¤²","à¦®â€™à¦¬à¦¾à¦‡à¦²"],
+ "Type":["à¤ªà¥à¤°à¤•à¤¾à¤°","à¦§à§°à¦£"],
+ "Submitted":["à¤œà¤®à¤¾ à¤•à¤¿à¤¯à¤¾ à¤—à¤¯à¤¾","à¦œà¦®à¦¾ à¦¦à¦¿à¦¯à¦¼à¦¾ à¦¹à§ˆà¦›à§‡"],
+ "Village / Location":["à¤—à¤¾à¤à¤µ / à¤¸à¥à¤¥à¤¾à¤¨","à¦—à¦¾à¦à¦“ / à¦¸à§à¦¥à¦¾à¦¨"],
+ "Last Updated":["à¤…à¤‚à¤¤à¤¿à¤® à¤…à¤ªà¤¡à¥‡à¤Ÿ","à¦¶à§‡à¦¹à¦¤à§€à¦¯à¦¼à¦¾ à¦†à¦ªà¦¡à§‡à¦Ÿ"],
+ "Refresh":["à¤°à¥€à¤«à¥à¤°à¥‡à¤¶ à¤•à¤°à¥‡à¤‚","à¦ªà§à¦¨à§° à¦²à§‹à¦¡ à¦•à§°à¦•"],
+ "Logout":["à¤²à¥‰à¤—à¤†à¤‰à¤Ÿ","à¦²à¦—à¦†à¦‰à¦Ÿ"],
+ "Login":["à¤²à¥‰à¤—à¤¿à¤¨","à¦²à¦—à¦‡à¦¨"],
+ "Password":["à¤ªà¤¾à¤¸à¤µà¤°à¥à¤¡","à¦ªà¦¾à¦›à§±à§°à§à¦¡"],
+ "Admin Username":["à¤à¤¡à¤®à¤¿à¤¨ à¤¯à¥‚à¤œà¤¼à¤°à¤¨à¥‡à¤®","à¦à¦¡à¦®à¦¿à¦¨ à¦¬à§à¦¯à§±à¦¹à¦¾à§°à¦•à¦¾à§°à§€à§° à¦¨à¦¾à¦®"],
+ "Download Pending Excel":["à¤…à¤§à¥‚à¤°à¥‡ à¤¡à¥à¤°à¤¾à¤«à¥à¤Ÿ à¤•à¥€ Excel à¤¡à¤¾à¤‰à¤¨à¤²à¥‹à¤¡ à¤•à¤°à¥‡à¤‚","à¦…à¦¸à¦®à§à¦ªà§‚à§°à§à¦£ à¦–à¦šà§°à¦¾à§° Excel à¦¡à¦¾à¦‰à¦¨à¦²à§‹à¦¡ à¦•à§°à¦•"],
+ "Pending drafts downloaded successfully.":["à¤…à¤§à¥‚à¤°à¥‡ à¤¡à¥à¤°à¤¾à¤«à¥à¤Ÿ à¤•à¥€ Excel à¤¡à¤¾à¤‰à¤¨à¤²à¥‹à¤¡ à¤¹à¥‹ à¤—à¤ˆà¥¤","à¦…à¦¸à¦®à§à¦ªà§‚à§°à§à¦£ à¦–à¦šà§°à¦¾à§° Excel à¦¡à¦¾à¦‰à¦¨à¦²à§‹à¦¡ à¦¹à§ˆà¦›à§‡à¥¤"],
+ "All six sheets downloaded successfully.":["à¤ªà¥à¤°à¤¾à¤¨à¥‡ à¤”à¤° à¤¨à¤ à¤¸à¤­à¥€ à¤šà¤¾à¤°à¥‹à¤‚ à¤¶à¥€à¤Ÿ à¤¡à¤¾à¤‰à¤¨à¤²à¥‹à¤¡ à¤¹à¥‹ à¤—à¤ˆà¤‚à¥¤","à¦ªà§à§°à¦£à¦¿ à¦†à§°à§ à¦¨à¦¤à§à¦¨ à¦¸à¦•à¦²à§‹ à¦šà¦¾à§°à¦¿à¦–à¦¨ à¦¶à§à¦¬à§€à¦Ÿ à¦¡à¦¾à¦‰à¦¨à¦²à§‹à¦¡ à¦¹à§ˆà¦›à§‡à¥¤"],
+ "Questionnaire Version":["à¤ªà¥à¤°à¤¶à¥à¤¨à¤¾à¤µà¤²à¥€ à¤¸à¤‚à¤¸à¥à¤•à¤°à¤£","à¦ªà§à§°à¦¶à§à¦¨à¦¾à§±à¦²à§€à§° à¦¸à¦‚à¦¸à§à¦•à§°à¦£"],
+ "Record Status":["à¤°à¤¿à¤•à¥‰à¤°à¥à¤¡ à¤•à¥€ à¤¸à¥à¤¥à¤¿à¤¤à¤¿","à§°à§‡à¦•à§°à§à¦¡à§° à¦…à§±à¦¸à§à¦¥à¦¾"],
+ "Survey Type":["à¤¸à¤°à¥à¤µà¥‡ à¤•à¤¾ à¤ªà¥à¤°à¤•à¤¾à¤°","à¦¸à¦®à§€à¦•à§à¦·à¦¾à§° à¦§à§°à¦£"],
+ "Language":["à¤­à¤¾à¤·à¤¾","à¦­à¦¾à¦·à¦¾"],
+ "Created At":["à¤¬à¤¨à¤¾à¤¨à¥‡ à¤•à¥€ à¤¤à¤¾à¤°à¥€à¤–","à¦¸à§ƒà¦·à§à¦Ÿà¦¿ à¦•à§°à¦¾à§° à¦¤à¦¾à§°à¦¿à¦–"],
+ "Submitted At":["à¤œà¤®à¤¾ à¤•à¤°à¤¨à¥‡ à¤•à¥€ à¤¤à¤¾à¤°à¥€à¤–","à¦œà¦®à¦¾ à¦¦à¦¿à¦¯à¦¼à¦¾à§° à¦¤à¦¾à§°à¦¿à¦–"],
+ "Loading...":["à¤²à¥‹à¤¡ à¤¹à¥‹ à¤°à¤¹à¤¾ à¤¹à¥ˆâ€¦","à¦²à§‹à¦¡ à¦¹à§ˆ à¦†à¦›à§‡â€¦"],
+ "Preparing Excel...":["Excel à¤¤à¥ˆà¤¯à¤¾à¤° à¤¹à¥‹ à¤°à¤¹à¥€ à¤¹à¥ˆâ€¦","Excel à¦ªà§à§°à¦¸à§à¦¤à§à¦¤ à¦¹à§ˆ à¦†à¦›à§‡â€¦"],
+ "Showing":["à¤¦à¤¿à¤–à¤¾à¤ à¤œà¤¾ à¤°à¤¹à¥‡ à¤¹à¥ˆà¤‚","à¦¦à§‡à¦–à§à¦“à§±à¦¾ à¦¹à§ˆà¦›à§‡"],
+ "of":["à¤®à¥‡à¤‚ à¤¸à¥‡","à§° à¦­à¦¿à¦¤à§°à¦¤"],
+ "Not available":["à¤‰à¤ªà¤²à¤¬à¥à¤§ à¤¨à¤¹à¥€à¤‚","à¦‰à¦ªà¦²à¦¬à§à¦§ à¦¨à¦¹à¦¯à¦¼"],
+ "Not submitted":["à¤œà¤®à¤¾ à¤¨à¤¹à¥€à¤‚ à¤•à¤¿à¤¯à¤¾ à¤—à¤¯à¤¾","à¦œà¦®à¦¾ à¦¦à¦¿à¦¯à¦¼à¦¾ à¦¹à§‹à§±à¦¾ à¦¨à¦¾à¦‡"],
+ "Previous":["à¤ªà¤¿à¤›à¤²à¤¾","à¦†à¦—à§°"],
+ "Next":["à¤…à¤—à¤²à¤¾","à¦ªà§°à§±à§°à§à¦¤à§€"],
+ "completed":["à¤œà¤®à¤¾ à¤•à¤¿à¤¯à¤¾ à¤—à¤¯à¤¾","à¦¸à¦®à§à¦ªà§‚à§°à§à¦£"],
+ "draft":["à¤…à¤§à¥‚à¤°à¤¾ à¤¡à¥à¤°à¤¾à¤«à¥à¤Ÿ","à¦…à¦¸à¦®à§à¦ªà§‚à§°à§à¦£ à¦–à¦šà§°à¦¾"],
+ "farmer":["à¤•à¤¿à¤¸à¤¾à¤¨","à¦•à§ƒà¦·à¦•"],
+ "stakeholder":["FPO","FPO"],
+ "new":["à¤¨à¤¯à¤¾","à¦¨à¦¤à§à¦¨"],
+ "legacy":["à¤ªà¥à¤°à¤¾à¤¨à¤¾","à¦ªà§à§°à¦£à¦¿"],
+ "name":["à¤¨à¤¾à¤®","à¦¨à¦¾à¦®"],
+ "mobile":["à¤®à¥‹à¤¬à¤¾à¤‡à¤² à¤¨à¤‚à¤¬à¤°","à¦®â€™à¦¬à¦¾à¦‡à¦² à¦¨à¦®à§à¦¬à§°"],
+ "email":["à¤ˆà¤®à¥‡à¤²","à¦‡à¦®à§‡à¦‡à¦²"],
+ "location":["à¤—à¤¾à¤à¤µ / à¤¸à¥à¤¥à¤¾à¤¨","à¦—à¦¾à¦à¦“ / à¦¸à§à¦¥à¦¾à¦¨"],
+ "age":["à¤†à¤¯à¥","à¦¬à¦¯à¦¼à¦¸"],
+ "experience":["à¤–à¥‡à¤¤à¥€ à¤•à¤¾ à¤…à¤¨à¥à¤­à¤µ","à¦•à§ƒà¦·à¦¿à§° à¦…à¦­à¦¿à¦œà§à¦žà¦¤à¦¾"],
+ "land":["à¤œà¤®à¥€à¤¨ à¤•à¤¾ à¤°à¤•à¤¬à¤¾","à¦®à¦¾à¦Ÿà¦¿à§° à¦ªà§°à¦¿à¦®à¦¾à¦£"],
+ "crops":["à¤«à¤¸à¤²à¥‡à¤‚","à¦¶à¦¸à§à¦¯"],
+ "farmer_crops":["à¤µà¤°à¥à¤¤à¤®à¤¾à¤¨ à¤®à¥‡à¤‚ à¤‰à¤—à¤¾à¤ˆ à¤œà¤¾à¤¨à¥‡ à¤µà¤¾à¤²à¥€ à¤«à¤¸à¤²à¥‡à¤‚","à¦¬à§°à§à¦¤à¦®à¦¾à¦¨ à¦–à§‡à¦¤à¦¿ à¦•à§°à¦¾ à¦¶à¦¸à§à¦¯"],
+ "fpo_crops":["FPO à¤•à¤¿à¤¸à¤¾à¤¨à¥‹à¤‚ à¤¦à¥à¤µà¤¾à¤°à¤¾ à¤‰à¤—à¤¾à¤ˆ à¤œà¤¾à¤¨à¥‡ à¤µà¤¾à¤²à¥€ à¤«à¤¸à¤²à¥‡à¤‚","FPO à¦•à§ƒà¦·à¦•à§‡ à¦–à§‡à¦¤à¦¿ à¦•à§°à¦¾ à¦¶à¦¸à§à¦¯"],
+ "landOwnership":["à¤­à¥‚à¤®à¤¿ à¤•à¤¾ à¤¸à¥à¤µà¤¾à¤®à¤¿à¤¤à¥à¤µ","à¦­à§‚à¦®à¦¿à§° à¦®à¦¾à¦²à¦¿à¦•à§€à¦¸à§à¦¬à¦¤à§à¦¬"],
+ "topProblems":["à¤®à¥à¤–à¥à¤¯ à¤¸à¤®à¤¸à¥à¤¯à¤¾à¤à¤","à¦ªà§à§°à¦§à¦¾à¦¨ à¦¸à¦®à¦¸à§à¦¯à¦¾"],
+ "seriousProblems":["à¤—à¤‚à¤­à¥€à¤° à¤¸à¤®à¤¸à¥à¤¯à¤¾à¤à¤","à¦—à§à§°à§à¦¤à§° à¦¸à¦®à¦¸à§à¦¯à¦¾"],
+ "financialLoss":["à¤†à¤°à¥à¤¥à¤¿à¤• à¤¨à¥à¤•à¤¸à¤¾à¤¨","à¦†à§°à§à¦¥à¦¿à¦• à¦•à§à¦·à¦¤à¦¿"],
+ "diseaseExperience":["à¤«à¤¸à¤² à¤°à¥‹à¤— à¤•à¤¾ à¤…à¤¨à¥à¤­à¤µ","à¦¶à¦¸à§à¦¯à§° à§°à§‹à¦—à§° à¦…à¦­à¦¿à¦œà§à¦žà¦¤à¦¾"],
+ "infoSources":["à¤œà¤¾à¤¨à¤•à¤¾à¤°à¥€ à¤•à¥‡ à¤¸à¥à¤°à¥‹à¤¤","à¦¤à¦¥à§à¦¯à§° à¦‰à§Žà¦¸"],
+ "infoGaps":["à¤œà¤¾à¤¨à¤•à¤¾à¤°à¥€ à¤•à¥€ à¤•à¤®à¥€","à¦¤à¦¥à§à¦¯à§° à¦…à¦­à¦¾à§±"],
+ "smartphone":["à¤¸à¥à¤®à¤¾à¤°à¥à¤Ÿà¤«à¥‹à¤¨ à¤•à¥€ à¤‰à¤ªà¤²à¤¬à¥à¤§à¤¤à¤¾","à¦¸à§à¦®à¦¾à§°à§à¦Ÿà¦«à§‹à¦¨à§° à¦‰à¦ªà¦²à¦¬à§à¦§à¦¤à¦¾"],
+ "appsUsed":["à¤‰à¤ªà¤¯à¥‹à¤— à¤•à¤¿à¤ à¤—à¤ à¤à¤ª","à¦¬à§à¦¯à§±à¦¹à¦¾à§° à¦•à§°à¦¾ à¦à¦ª"],
+ "photoDiagnosis":["à¤«à¥‹à¤Ÿà¥‹ à¤¸à¥‡ à¤°à¥‹à¤— à¤ªà¤¹à¤šà¤¾à¤¨","à¦«à¦Ÿà§‹à§°à§‡ à§°à§‹à¦— à¦šà¦¿à¦¨à¦¾à¦•à§à¦¤à¦•à§°à¦£"],
+ "digitalNeeds":["à¤¡à¤¿à¤œà¤¿à¤Ÿà¤² à¤œà¤°à¥‚à¤°à¤¤à¥‡à¤‚","à¦¡à¦¿à¦œà¦¿à¦Ÿà§‡à¦² à¦ªà§à§°à¦¯à¦¼à§‹à¦œà¦¨"],
+ "languagePreference":["à¤­à¤¾à¤·à¤¾ à¤•à¥€ à¤ªà¤¸à¤‚à¤¦","à¦­à¦¾à¦·à¦¾à§° à¦ªà¦›à¦¨à§à¦¦"],
+ "trustFactors":["à¤µà¤¿à¤¶à¥à¤µà¤¾à¤¸ à¤•à¥‡ à¤•à¤¾à¤°à¤•","à¦¬à¦¿à¦¶à§à¦¬à¦¾à¦¸à§° à¦•à¦¾à§°à¦•"],
+ "digitalBarriers":["à¤¡à¤¿à¤œà¤¿à¤Ÿà¤² à¤¬à¤¾à¤§à¤¾à¤à¤","à¦¡à¦¿à¦œà¦¿à¦Ÿà§‡à¦² à¦¬à¦¾à¦§à¦¾"],
+ "useIntent":["à¤‰à¤ªà¤¯à¥‹à¤— à¤•à¤°à¤¨à¥‡ à¤•à¥€ à¤‡à¤šà¥à¤›à¤¾","à¦¬à§à¦¯à§±à¦¹à¦¾à§°à§° à¦‡à¦šà§à¦›à¦¾"],
+ "paymentModel":["à¤­à¥à¤—à¤¤à¤¾à¤¨ à¤®à¥‰à¤¡à¤²","à¦ªà§°à¦¿à¦¶à§‹à¦§à§° à¦†à§°à§à¦¹à¦¿"],
+ "willingnessToPay":["à¤­à¥à¤—à¤¤à¤¾à¤¨ à¤•à¤°à¤¨à¥‡ à¤•à¥€ à¤‡à¤šà¥à¤›à¤¾","à¦ªà§°à¦¿à¦¶à§‹à¦§ à¦•à§°à¦¾à§° à¦‡à¦šà§à¦›à¦¾"],
+ "paymentConditions":["à¤­à¥à¤—à¤¤à¤¾à¤¨ à¤•à¥€ à¤¶à¤°à¥à¤¤à¥‡à¤‚","à¦ªà§°à¦¿à¦¶à§‹à¦§à§° à¦šà§°à§à¦¤"],
+ "whatsappGroup":["WhatsApp à¤¸à¤®à¥‚à¤¹ à¤¸à¥‡ à¤œà¥à¤¡à¤¼à¤¨à¤¾","WhatsApp à¦—à§‹à¦Ÿà¦¤ à¦¯à§‹à¦—à¦¦à¦¾à¦¨"],
+ "farmersSupported":["à¤¸à¤¹à¤¾à¤¯à¤¤à¤¾ à¤ªà¤¾à¤¨à¥‡ à¤µà¤¾à¤²à¥‡ à¤•à¤¿à¤¸à¤¾à¤¨","à¦¸à¦¹à¦¾à¦¯à¦¼ à¦ªà§‹à§±à¦¾ à¦•à§ƒà¦·à¦•"],
+ "stakeholderProblems":["à¤¹à¤¿à¤¤à¤§à¤¾à¤°à¤• à¤•à¥€ à¤¸à¤®à¤¸à¥à¤¯à¤¾à¤à¤","à¦…à¦‚à¦¶à§€à¦¦à¦¾à§°à§° à¦¸à¦®à¦¸à§à¦¯à¦¾"],
+ "guidanceProcess":["à¤®à¤¾à¤°à¥à¤—à¤¦à¤°à¥à¤¶à¤¨ à¤ªà¥à¤°à¤•à¥à¤°à¤¿à¤¯à¤¾","à¦ªà§°à¦¾à¦®à§°à§à¦¶ à¦ªà§à§°à¦•à§à§°à¦¿à¦¯à¦¼à¦¾"],
+ "stakeholderLoss":["à¤¹à¤¿à¤¤à¤§à¤¾à¤°à¤• à¤•à¤¾ à¤¨à¥à¤•à¤¸à¤¾à¤¨","à¦…à¦‚à¦¶à§€à¦¦à¦¾à§°à§° à¦•à§à¦·à¦¤à¦¿"],
+ "digitalTools":["à¤¡à¤¿à¤œà¤¿à¤Ÿà¤² à¤‰à¤ªà¤•à¤°à¤£","à¦¡à¦¿à¦œà¦¿à¦Ÿà§‡à¦² à¦¸à¦à¦œà§à¦²à¦¿"],
+ "valueCreation":["à¤®à¥‚à¤²à¥à¤¯ à¤¨à¤¿à¤°à¥à¤®à¤¾à¤£","à¦®à§‚à¦²à§à¦¯ à¦¸à§ƒà¦·à§à¦Ÿà¦¿"],
+ "pilotReadiness":["à¤ªà¤¾à¤¯à¤²à¤Ÿ à¤•à¥€ à¤¤à¥ˆà¤¯à¤¾à¤°à¥€","à¦ªà¦¾à¦‡à¦²à¦Ÿà§° à¦ªà§à§°à¦¸à§à¦¤à§à¦¤à¦¿"],
+ "adoptionNeeds":["à¤…à¤ªà¤¨à¤¾à¤¨à¥‡ à¤•à¥€ à¤œà¤°à¥‚à¤°à¤¤à¥‡à¤‚","à¦—à§à§°à¦¹à¦£à§° à¦ªà§à§°à¦¯à¦¼à§‹à¦œà¦¨"],
+ "sponsorship":["à¤ªà¥à¤°à¤¾à¤¯à¥‹à¤œà¤¨","à¦ªà§ƒà¦·à§à¦ à¦ªà§‹à¦·à¦•à¦¤à¦¾"],
+ "pilot":["à¤ªà¤¾à¤¯à¤²à¤Ÿ","à¦ªà¦¾à¦‡à¦²à¦Ÿ"],
+ "recentProblem":["à¤¹à¤¾à¤² à¤•à¥€ à¤¸à¤®à¤¸à¥à¤¯à¤¾","à¦¶à§‡à¦¹à¦¤à§€à¦¯à¦¼à¦¾ à¦¸à¦®à¦¸à§à¦¯à¦¾"],
+ "timelyBenefit":["à¤¸à¤®à¤¯ à¤ªà¤° à¤®à¤¿à¤²à¤¨à¥‡ à¤µà¤¾à¤²à¤¾ à¤²à¤¾à¤­","à¦¸à¦®à¦¯à¦¼à¦®à¦¤à§‡ à¦ªà§‹à§±à¦¾ à¦¸à§à¦¬à¦¿à¦§à¦¾"],
+ "paidServices":["à¤­à¥à¤—à¤¤à¤¾à¤¨ à¤µà¤¾à¤²à¥€ à¤¸à¥‡à¤µà¤¾à¤à¤","à¦ªà§°à¦¿à¦¶à§‹à¦§à¦¯à§‹à¦—à§à¦¯ à¦¸à§‡à§±à¦¾"],
+ "trustEvidence":["à¤µà¤¿à¤¶à¥à¤µà¤¾à¤¸ à¤•à¤¾ à¤ªà¥à¤°à¤®à¤¾à¤£","à¦¬à¦¿à¦¶à§à¦¬à¦¾à¦¸à§° à¦ªà§à§°à¦®à¦¾à¦£"],
+ "firstProblem":["à¤ªà¤¹à¤²à¥€ à¤¸à¤®à¤¸à¥à¤¯à¤¾","à¦ªà§à§°à¦¥à¦® à¦¸à¦®à¦¸à§à¦¯à¦¾"],
+ "recommend":["à¤…à¤¨à¥à¤¶à¤‚à¤¸à¤¾","à¦ªà§°à¦¾à¦®à§°à§à¦¶"],
+ "referral":["à¤°à¥‡à¤«à¤°à¤²","à§°à§‡à¦«à¦¾à§°à§‡à¦²"],
+});
+const safeTranslations = {
+ "Admin Panel":["एडमिन पैनल","এডমিন পেনেল"],
+ "Admin Login":["एडमिन लॉगिन","এডমিন লগইন"],
+ "Login":["लॉगिन","লগইন"],
+ "Password":["पासवर्ड","পাছৱৰ্ড"],
+ "Admin Username":["एडमिन यूज़रनेम","এডমিন ব্যৱহাৰকাৰীৰ নাম"],
+ "Survey Dashboard":["सर्वे डैशबोर्ड","সমীক্ষা ডেশ্ববৰ্ড"],
+ "Submitted Surveys":["जमा किए गए सर्वे","জমা দিয়া সমীক্ষা"],
+ "Farmer Surveys":["किसान सर्वे","কৃষক সমীক্ষা"],
+ "FPO Surveys":["FPO सर्वे","FPO সমীক্ষা"],
+ "Pending Farmer":["अधूरे किसान सर्वे","অসম্পূৰ্ণ কৃষক সমীক্ষা"],
+ "Pending FPO":["अधूरे FPO सर्वे","অসম্পূৰ্ণ FPO সমীক্ষা"],
+ "Total Pending":["कुल अधूरे ड्राफ्ट","মুঠ অসম্পূৰ্ণ খচৰা"],
+ "Download All 6 Sheets":["सभी 6 शीट डाउनलोड करें","সকলো ৬খন শ্বীট ডাউনলোড কৰক"],
+ "Download Pending Drafts":["अधूरे ड्राफ्ट डाउनलोड करें","অসম্পূৰ্ণ খচৰা ডাউনলোড কৰক"],
+ "Refresh":["रिफ्रेश करें","সতেজ কৰক"],
+ "Logout":["लॉगआउट","লগআউট"],
+ "View Details":["पूरी जानकारी देखें","সম্পূৰ্ণ বিৱৰণ চাওক"],
+ "Close":["बंद करें","বন্ধ কৰক"],
+ "Name":["नाम","নাম"],
+ "Mobile":["मोबाइल","ম'বাইল"],
+ "Type":["प्रकार","ধৰণ"],
+ "Survey ID":["सर्वे आईडी","সমীক্ষা ID"],
+ "Pending ID":["ड्राफ्ट आईडी","খচৰা ID"],
+ "Invalid username or password.":["यूज़रनेम या पासवर्ड गलत है।","ব্যৱহাৰকাৰীৰ নাম বা পাছৱৰ্ড ভুল।"],
+ "Logging in...":["लॉगिन हो रहा है...","লগইন হৈ আছে..."]
+};
+
+function t(value){
+ if(uiLang==='en') return value;
+ const safe = safeTranslations[value];
+ if(safe) return safe[uiLang==='as'?1:0];
+ const pair = translations[value];
+ const localized = pair ? pair[uiLang==='as'?1:0] : '';
+ return localized && !/[?ï¿½]|à¤|à¦|â€™|αñ|αª/.test(localized) ? localized : value;
+}
+function applyLanguage(){document.querySelectorAll('[data-en]').forEach(el=>el.textContent=t(el.getAttribute('data-en')));$('username').placeholder=t('Admin Username');$('password').placeholder=t('Password');}
+$('adminLanguage').value=uiLang;$('adminLanguage').addEventListener('change',e=>{uiLang=e.target.value;localStorage.setItem('kk_admin_language',uiLang);applyLanguage();if(token)loadRecords();});
+
+const esc=value=>String(value??'');
+function setMessage(text,good=false){$('status').textContent=t(text);$('status').className=good?'status-good':'';}
+
+$('loginForm').addEventListener('submit',async e=>{
+ e.preventDefault();$('message').textContent=t('Logging in...');
+ try{
+  const r=await fetch(API+'/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('username').value.trim(),password:$('password').value})});
+  const d=await r.json();if(!r.ok)throw new Error(d.message||'Login failed');
+  token=d.token;sessionStorage.setItem('kk_admin_token',token);
+  $('login').classList.add('hidden');$('dashboard').classList.remove('hidden');loadRecords();loadStaff();loadSupportSettings();
+ }catch(err){$('message').textContent=t(err.message);}
+});
+
+function switchTab(tab){
+  if (!['farmer','stakeholder','pending_farmer','pending_stakeholder'].includes(tab)) return;
+  currentTab = tab;
+  currentOffset = 0;
+  for (const name of ['farmer','stakeholder','pending_farmer','pending_stakeholder']) {
+    const button = $(name === 'pending_farmer' ? 'pendingFarmerTab' :
+      name === 'pending_stakeholder' ? 'pendingStakeholderTab' : name + 'Tab');
+    button.classList.toggle('active', tab === name);
+    button.classList.toggle('secondary', tab !== name);
+  }
+  const titles = {
+    farmer:'Farmer Surveys',
+    stakeholder:'FPO Surveys',
+    pending_farmer:'Pending Farmer',
+    pending_stakeholder:'Pending FPO'
+  };
+  $('listTitle').textContent = t(titles[tab]);
+  loadRecords();
+}
+
+async function loadRecords(){
+  setMessage(t('Loading...'));
+
+  try {
+    const isPending = currentTab.startsWith('pending_');
+    const pendingType = currentTab === 'pending_stakeholder' ? 'stakeholder' : 'farmer';
+    const endpoint = isPending
+      ? '/api/admin/enquiries?type=' + pendingType
+      : '/api/admin/surveys?type=' + encodeURIComponent(currentTab);
+
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const r = await fetch(
+      API + endpoint + separator + 'limit=' + pageSize + '&offset=' + currentOffset,
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.message || 'Could not load records');
+
+    const sr = await fetch(API + '/api/admin/dashboard', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const sd = await sr.json();
+    if (!sr.ok) throw new Error(sd.message || 'Could not load dashboard');
+
+    const summary = sd.summary || {};
+    $('submitted').textContent = summary.total_submitted ?? 0;
+    $('newSubmitted').textContent = summary.new_submitted ?? 0;
+    $('oldSubmitted').textContent = summary.old_submitted ?? 0;
+    $('farmers').textContent = summary.farmer_surveys ?? 0;
+    $('stakeholders').textContent = summary.stakeholder_surveys ?? 0;
+    $('pendingFarmers').textContent = summary.pending_farmer ?? 0;
+    $('pendingStakeholders').textContent = summary.pending_stakeholder ?? 0;
+    $('enquiries').textContent = summary.total_pending ?? summary.total_enquiries ?? 0;
+
+    const rows = isPending
+      ? (d.pending || d.enquiries || [])
+      : (d.surveys || []);
+
+    const headings = isPending
+      ? ['Pending ID','Name','Mobile','Village / Location','Last Updated','Details']
+      : ['Survey ID','Name','Mobile','Type','Submitted','Details'];
+
+    $('tableHead').replaceChildren();
+    const headerRow = document.createElement('tr');
+
+    headings.forEach(heading => {
+      const th = document.createElement('th');
+      th.textContent = t(heading);
+      headerRow.append(th);
+    });
+
+    $('tableHead').append(headerRow);
+    $('records').replaceChildren();
+
+    if (!rows.length) {
+      const emptyRow = document.createElement('tr');
+      const emptyCell = document.createElement('td');
+      emptyCell.colSpan = headings.length;
+      emptyCell.className = 'muted';
+      emptyCell.textContent = t('No records found.');
+      emptyRow.append(emptyCell);
+      $('records').append(emptyRow);
+    }
+
+    rows.forEach(record => {
+      const tr = document.createElement('tr');
+      const name = record.answers?.name || record.name || '';
+      const mobile = record.answers?.mobile || record.mobile || '';
+      const location = record.answers?.location || record.answers?.address || record.answers?.fpo_district || record.location || '';
+      const dateValue = isPending
+        ? (record.updated_at || record.created_at)
+        : (record.submitted_at || record.created_at);
+
+      const dateText = dateValue
+        ? new Date(dateValue).toLocaleString('en-IN')
+        : '';
+
+      const values = isPending
+        ? [record.response_id, name, mobile, location, dateText]
+        : [
+            record.response_id,
+            name,
+            mobile,
+            t(record.survey_type || currentTab),
+            dateText
+          ];
+
+      values.forEach(value => {
+        const td = document.createElement('td');
+        td.textContent = String(value ?? '');
+        tr.append(td);
+      });
+
+      const action = document.createElement('td');
+      action.className = 'actions';
+
+      const view = document.createElement('button');
+      view.textContent = t('View Details');
+      view.onclick = () => showDetails(record);
+
+      action.append(view);
+      tr.append(action);
+      $('records').append(tr);
+    });
+
+    $('recordPagination').replaceChildren();
+
+    const prev = document.createElement('button');
+    prev.textContent = t('Previous');
+    prev.className = 'secondary';
+    prev.disabled = currentOffset === 0;
+    prev.onclick = () => {
+      currentOffset = Math.max(0, currentOffset - pageSize);
+      loadRecords();
+    };
+
+    const next = document.createElement('button');
+    next.textContent = t('Next');
+    next.className = 'secondary';
+    next.disabled = currentOffset + pageSize >= d.total;
+    next.onclick = () => {
+      currentOffset += pageSize;
+      loadRecords();
+    };
+
+    $('recordPagination').append(prev, next);
+
+    const category = currentTab === 'farmer'
+      ? 'Farmer Surveys'
+      : currentTab === 'stakeholder'
+        ? 'FPO Surveys'
+        : currentTab === 'pending_farmer'
+          ? 'Pending Farmer'
+          : 'Pending FPO';
+
+    setMessage(
+      t('Showing') + ' ' +
+      (rows.length ? currentOffset + 1 : 0) + '-' +
+      (currentOffset + rows.length) + ' ' +
+      t('of') + ' ' + d.total + ' ' + t(category) + '.',
+      true
+    );
+  } catch (err) {
+    setMessage(err.message);
+  }
+}
+
+async function showDetails(record){
+  const pending = currentTab.startsWith('pending_');
+  const recordId = String(record.id || '');
+
+  if (!/^\d+$/.test(recordId)) {
+    setMessage('Invalid record reference.');
+    return;
+  }
+
+  $('modalTitle').textContent =
+    t(pending ? 'Pending' : 'Survey') + ' Â· ' + (record.response_id || '');
+
+  $('detailContent').replaceChildren();
+
+  const loading = document.createElement('p');
+  loading.textContent = t('Loading...');
+  $('detailContent').append(loading);
+  $('detailsModal').classList.remove('hidden');
+
+  try {
+    let endpoint;
+
+    if (pending) {
+      const type = record.survey_type;
+      if (!['farmer', 'stakeholder'].includes(type)) {
+        throw new Error('Invalid pending survey type.');
+      }
+      endpoint = '/api/admin/enquiry-detail/' + encodeURIComponent(recordId) +
+        '?type=' + encodeURIComponent(type);
+    } else {
+      const type = record.survey_type;
+      if (!['farmer', 'stakeholder'].includes(type)) {
+        throw new Error('Invalid survey type.');
+      }
+      const source = record.source === 'Old (Neon)' ? 'old' : 'local';
+      endpoint = '/api/admin/survey-detail/' + source + '/' +
+        encodeURIComponent(recordId) + '?type=' + encodeURIComponent(type);
+    }
+
+    const response = await fetch(API + endpoint, {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Could not load record details.');
+    }
+
+    const detailRecord = pending ? data.pending : data.survey;
+    if (!detailRecord) throw new Error('Record details were not returned.');
+
+    const answers = detailRecord.answers && typeof detailRecord.answers === 'object'
+      ? detailRecord.answers
+      : {};
+
+    const details = {
+      [t(pending ? 'Pending ID' : 'Survey ID')]:
+        detailRecord.response_id || record.response_id || '',
+      [t('Questionnaire Version')]: t(detailRecord.survey_version || 'legacy'),
+      [t('Record Status')]: t(detailRecord.status || ''),
+      [t('Survey Type')]: t(detailRecord.survey_type || ''),
+      [t('Language')]: detailRecord.language || '',
+      [t('Created At')]: detailRecord.created_at
+        ? new Date(detailRecord.created_at).toLocaleString('en-IN')
+        : '',
+      [t('Submitted At')]: detailRecord.submitted_at
+        ? new Date(detailRecord.submitted_at).toLocaleString('en-IN')
+        : t('Not submitted'),
+      ...Object.fromEntries(
+        Object.entries(answers).map(([key, value]) => [
+          t(key) === key ? key.replaceAll('_', ' ') : t(key),
+          value
+        ])
+      )
+    };
+
+    $('modalTitle').textContent =
+      t(pending ? 'Pending' : 'Survey') + ' Â· ' +
+      (detailRecord.response_id || record.response_id || '');
+
+    $('detailContent').replaceChildren();
+
+    Object.entries(details).forEach(([key, value]) => {
+      const item = document.createElement('div');
+      item.className = 'detail';
+
+      const label = document.createElement('b');
+      label.textContent = key;
+
+      const content = document.createElement('span');
+      if (value && typeof value === 'object' && value.dataUrl) {
+        const preview = document.createElement('img');
+        preview.src = value.dataUrl;
+        preview.alt = value.fileName || 'Survey photo';
+        preview.style.cssText = 'display:block;max-width:220px;max-height:180px;object-fit:contain;margin-top:6px;border-radius:8px';
+        content.textContent = value.fileName || 'Uploaded photo';
+        content.append(preview);
+      } else {
+        content.textContent = Array.isArray(value)
+          ? value.join(', ')
+          : (value && typeof value === 'object'
+              ? JSON.stringify(value)
+              : String(value ?? ''));
+      }
+
+      item.append(label, content);
+      $('detailContent').append(item);
+    });
+  } catch (error) {
+    $('detailContent').replaceChildren();
+    const message = document.createElement('p');
+    message.textContent = error.message;
+    $('detailContent').append(message);
+  }
+}
+function closeDetails(){$('detailsModal').classList.add('hidden');}
+$('detailsModal').addEventListener('click',e=>{if(e.target===$('detailsModal'))closeDetails();});
+
+async function downloadExcel(){
+  setMessage(t('Preparing Excel...'));
+
+  try {
+    const r = await fetch(
+      API + '/api/admin/export-excel?type=' +
+      encodeURIComponent(currentTab) + '&lang=' + encodeURIComponent(uiLang),
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      throw new Error(d.message || 'Excel export failed');
+    }
+
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+
+    a.href = url;
+    a.download = 'Khushhal_Kisan_All_6_Survey_Sheets.xlsx';
+
+    document.body.append(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    setMessage(t('All six sheets downloaded successfully.'), true);
+  } catch (err) {
+    setMessage(err.message);
+  }
+}
+
+async function downloadPendingExcel(){
+  setMessage(t('Preparing Excel...'));
+  try{
+    const r=await fetch(API+'/api/admin/export-pending-excel',{headers:{Authorization:'Bearer '+token}});
+    if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||'Pending Excel export failed');}
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='Khushhal_Kisan_Pending_Drafts.xlsx';
+    document.body.append(a);a.click();a.remove();
+    URL.revokeObjectURL(url);
+    setMessage(t('Pending drafts downloaded successfully.'),true);
+  }catch(err){setMessage(err.message);}
+}
+
+
+const STAFF_PERMISSION_KEYS = ['farmer','stakeholder','newData','oldData','pendingFarmer','pendingStakeholder'];
+const STAFF_PERMISSION_LABELS = {
+  farmer:'Farmer submitted surveys',
+  stakeholder:'FPO submitted surveys',
+  newData:'New / Local data',
+  oldData:'Old / Neon data',
+  pendingFarmer:'Pending Farmer surveys',
+  pendingStakeholder:'Pending FPO surveys'
+};
+
+function staffMessage(message, good=false) {
+  $('staffMessage').textContent = message;
+  $('staffMessage').className = good ? 'status-good' : '';
+}
+
+function selectedStaffPermissions(container) {
+  const permissions = {};
+  container.querySelectorAll('input[type="checkbox"]').forEach(input => {
+    permissions[input.value] = input.checked;
+  });
+  return permissions;
+}
+
+async function loadStaff() {
+  const body = $('staffTableBody');
+  if (!body) return;
+  body.textContent = 'Loading staff accounts...';
+  try {
+    const response = await fetch(API + '/api/admin/staff', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error(data.message || 'Could not load staff accounts.');
+    body.replaceChildren();
+    (data.staff || []).forEach(person => {
+      const tr = document.createElement('tr');
+      [person.full_name, person.username, person.active ? 'Active' : 'Deactivated'].forEach(value => {
+        const td = document.createElement('td');
+        td.textContent = value || '';
+        tr.append(td);
+      });
+      const perms = document.createElement('td');
+      perms.textContent = STAFF_PERMISSION_KEYS.filter(key => person.permissions && person.permissions[key]).map(key => STAFF_PERMISSION_LABELS[key] || key).join(', ') || 'None';
+      const action = document.createElement('td');
+      const view = document.createElement('button');
+      view.type = 'button';
+      view.textContent = 'View Details';
+      view.className = 'secondary';
+      view.addEventListener('click', () => openStaffDetails(person));
+
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.textContent = 'Edit';
+      edit.style.marginLeft = '6px';
+      edit.addEventListener('click', () => openStaffEditor(person));
+
+      action.append(view, edit);
+      tr.append(perms, action);
+      body.append(tr);
+    });
+    if (!(data.staff || []).length) body.innerHTML = '<tr><td colspan="5">No staff accounts created yet.</td></tr>';
+  } catch (error) {
+    body.textContent = error.message;
+  }
+}
+
+function openStaffDetails(person) {
+  $('staffEditor').classList.add('hidden');
+  $('staffDetailsPanel').classList.remove('hidden');
+
+  const host = $('staffDetailsContent');
+  host.replaceChildren();
+
+  const rows = [
+    ['Staff ID', person.id],
+    ['Full Name', person.full_name],
+    ['Username', person.username],
+    ['Account Status', person.active ? 'Active' : 'Deactivated'],
+    ['Created At', person.created_at
+      ? new Date(person.created_at).toLocaleString('en-IN')
+      : 'Not available']
+  ];
+
+  rows.forEach(([label, value]) => {
+    const item = document.createElement('div');
+    item.className = 'detail';
+
+    const heading = document.createElement('b');
+    heading.textContent = label;
+
+    const content = document.createElement('span');
+    content.textContent = String(value ?? '');
+
+    item.append(heading, content);
+    host.append(item);
+  });
+
+  const permissionHeading = document.createElement('h4');
+  permissionHeading.textContent = 'Access Permissions';
+  host.append(permissionHeading);
+
+  STAFF_PERMISSION_KEYS.forEach(key => {
+    const item = document.createElement('div');
+    item.className = 'detail';
+
+    const heading = document.createElement('b');
+    heading.textContent = STAFF_PERMISSION_LABELS[key] || key;
+
+    const value = document.createElement('span');
+    value.textContent = person.permissions && person.permissions[key]
+      ? 'Enabled'
+      : 'Disabled';
+
+    item.append(heading, value);
+    host.append(item);
+  });
+
+  $('editStaffFromDetails').onclick = () => {
+    $('staffDetailsPanel').classList.add('hidden');
+    openStaffEditor(person);
+  };
+}
+
+$('backToStaffList').addEventListener('click', () => {
+  $('staffDetailsPanel').classList.add('hidden');
+});
+let editingStaff = null;
+
+function openStaffEditor(person) {
+  editingStaff = person;
+  $('staffEditor').classList.remove('hidden');
+  $('staffEditorIdentity').textContent = (person.full_name || '') + ' (' + (person.username || '') + ')';
+  $('editStaffActive').checked = Boolean(person.active);
+  $('staffEditMessage').textContent = '';
+  const grid = $('editStaffPermissions');
+  grid.replaceChildren();
+  STAFF_PERMISSION_KEYS.forEach(key => {
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = key;
+    input.checked = Boolean(person.permissions && person.permissions[key]);
+    label.append(input, document.createTextNode(' ' + (STAFF_PERMISSION_LABELS[key] || key)));
+    grid.append(label);
+  });
+}
+
+async function saveStaffChanges() {
+  if (!editingStaff) return;
+  const permissions = selectedStaffPermissions($('editStaffPermissions'));
+  if (!Object.values(permissions).some(Boolean)) {
+    $('staffEditMessage').textContent = 'At least one permission must remain enabled.';
+    return;
+  }
+  const button = $('saveStaffEdit');
+  button.disabled = true;
+  try {
+    const response = await fetch(API + '/api/admin/staff/' + encodeURIComponent(editingStaff.id), {
+      method:'PATCH',
+      headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+      body:JSON.stringify({active:$('editStaffActive').checked,permissions})
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error(data.message || 'Update failed.');
+    editingStaff = null;
+    $('staffEditor').classList.add('hidden');
+    await loadStaff();
+  } catch(error) {
+    $('staffEditMessage').textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function deleteStaffAccount() {
+  if (!editingStaff) return;
+  if (!confirm('Delete this staff account? Survey records will remain safe.')) return;
+  const button = $('deleteStaffEdit');
+  button.disabled = true;
+  try {
+    const response = await fetch(API + '/api/admin/staff/' + encodeURIComponent(editingStaff.id), {
+      method:'DELETE',
+      headers:{Authorization:'Bearer '+token}
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error(data.message || 'Delete failed.');
+    editingStaff = null;
+    $('staffEditor').classList.add('hidden');
+    await loadStaff();
+  } catch(error) {
+    $('staffEditMessage').textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+$('staffCreateForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = $('staffCreateForm').querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const permissions = selectedStaffPermissions($('newStaffPermissions'));
+    if (!Object.values(permissions).some(Boolean)) {
+      throw new Error('Select at least one staff permission.');
+    }
+    const response = await fetch(API + '/api/admin/staff', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({
+        fullName: $('staffFullName').value.trim(),
+        username: $('staffUsername').value.trim(),
+        password: $('staffPassword').value,
+        permissions
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error(data.message || 'Staff account creation failed.');
+    $('staffCreateForm').reset();
+    staffMessage('Staff account created successfully.', true);
+    loadStaff();
+  } catch (error) {
+    staffMessage(error.message);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$('refreshStaff').addEventListener('click', loadStaff);
+
+async function loadSupportSettings() {
+  $('supportMessage').textContent = 'Loading support settings...';
+  try {
+    const response = await fetch(API + '/api/admin/support-settings', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error(data.message || 'Could not load support settings.');
+    const settings = data.settings || {};
+    $('supportActive').checked = Boolean(settings.active);
+    $('supportCall').value = settings.call_number || '';
+    $('supportWhatsapp').value = settings.whatsapp_number || '';
+    $('supportFrom').value = settings.available_from || '';
+    $('supportTo').value = settings.available_to || '';
+    $('supportMessage').textContent = 'Support settings loaded.';
+  } catch (error) {
+    $('supportMessage').textContent = error.message;
+  }
+}
+
+$('supportForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = $('supportForm').querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const response = await fetch(API + '/api/admin/support-settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({
+        active: $('supportActive').checked,
+        callNumber: $('supportCall').value.trim(),
+        whatsappNumber: $('supportWhatsapp').value.trim(),
+        availableFrom: $('supportFrom').value,
+        availableTo: $('supportTo').value
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error(data.message || 'Support settings could not be saved.');
+    $('supportMessage').textContent = 'Support settings saved successfully.';
+    $('supportMessage').className = 'status-good';
+  } catch (error) {
+    $('supportMessage').textContent = error.message;
+    $('supportMessage').className = '';
+  } finally {
+    button.disabled = false;
+  }
+});
+
+
+function showSettingsSection(section) {
+  const ids = {staff:'staffManagement',support:'supportSettings',assigned:'assignedStaff'};
+  Object.keys(ids).forEach(key => $(ids[key]).classList.toggle('hidden', key !== section));
+  ['staffSettingsTab','supportSettingsTab','assignedSettingsTab'].forEach(id => {
+    $(id).classList.remove('active');
+    $(id).classList.add('secondary');
+  });
+  const active = {staff:'staffSettingsTab',support:'supportSettingsTab',assigned:'assignedSettingsTab'}[section];
+  $(active).classList.add('active');
+  $(active).classList.remove('secondary');
+  if (section === 'assigned') loadStaff();
+}
+
+function initializeSettingsUI() {
+  const host = $('settingsContent');
+  host.appendChild($('staffManagement'));
+  host.appendChild($('supportSettings'));
+  $('settingsToggle').addEventListener('click', () => {
+    location.href = 'admin.html';
+  });
+  $('closeSettings').addEventListener('click', () => {
+    location.href = 'admin.html';
+  });
+  $('staffSettingsTab').addEventListener('click', () => showSettingsSection('staff'));
+  $('supportSettingsTab').addEventListener('click', () => showSettingsSection('support'));
+  $('assignedSettingsTab').addEventListener('click', () => showSettingsSection('assigned'));
+  $('saveStaffEdit').addEventListener('click', saveStaffChanges);
+  $('deleteStaffEdit').addEventListener('click', deleteStaffAccount);
+  $('cancelStaffEdit').addEventListener('click', () => {
+    editingStaff = null;
+    $('staffEditor').classList.add('hidden');
+  });
+}
+initializeSettingsUI();function logout(){token='';sessionStorage.removeItem('kk_admin_token');$('settingsPanel').classList.add('hidden');$('dashboard').classList.add('hidden');$('login').classList.remove('hidden');$('password').value='';}
+applyLanguage();
+if(!token){
+  location.replace('admin.html');
+}else{
+  $('login').classList.add('hidden');
+  $('dashboard').classList.remove('hidden');
+  $('settingsPanel').classList.remove('hidden');
+  showSettingsSection('staff');
+  loadStaff();
+  loadSupportSettings();
+}
+</script>
+</body>
+</html>

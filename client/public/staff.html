@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Khushhal Kisan | Staff Portal</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f6f4;color:#18372b;font-family:Arial,sans-serif}
+header{background:#174b35;color:white;padding:18px 5%;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:20px;margin:0}main{max-width:1100px;margin:28px auto;padding:0 16px}
+.panel{background:white;border:1px solid #dce7df;border-radius:12px;padding:22px;margin-bottom:18px;box-shadow:0 3px 14px #173b2b0a}
+h2{margin:0 0 16px;font-size:20px}.muted{color:#64756b;font-size:13px}
+input{width:100%;padding:12px;border:1px solid #cbd8ce;border-radius:7px;margin:6px 0 14px;font-size:15px}
+button{border:0;border-radius:7px;padding:10px 15px;background:#17613e;color:white;cursor:pointer;font-weight:600}
+button:disabled{opacity:.5;cursor:not-allowed}.secondary{background:#e8f0eb;color:#174b35}
+.danger{background:#a52e2e}.hidden{display:none!important}
+#loginPanel{max-width:430px;margin:55px auto}.message{margin-top:12px;color:#a12c2c;font-size:14px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.tabs button.active{background:#174b35;color:white}
+.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:650px}
+th,td{padding:12px 10px;border-bottom:1px solid #e5ece7;text-align:left;font-size:14px}
+th{background:#f3f7f4;color:#315642}td button{padding:7px 11px}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px}
+#summaryCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:18px}
+.summary-card{background:#fff;border:1px solid #dce7df;border-radius:12px;padding:16px 18px;box-shadow:0 3px 14px #173b2b0a;min-width:0}
+.summary-card .summary-label{font-size:13px;color:#64756b;font-weight:600}
+.summary-card .summary-count{font-size:28px;font-weight:750;line-height:1.2;color:#174b35;margin-top:8px;font-variant-numeric:tabular-nums}
+.summary-card .summary-note{font-size:12px;color:#748278;margin-top:5px}
+.summary-card.loading .summary-count{color:#9aa79e}
+#detailModal{position:fixed;inset:0;background:#0009;display:flex;align-items:center;justify-content:center;padding:15px;z-index:5}
+.modal-box{background:white;border-radius:12px;width:min(850px,100%);max-height:88vh;overflow:auto;padding:22px}
+.detail-sections{display:grid;gap:16px;margin-top:16px}.detail-section{border:1px solid #e3ebe5;border-radius:12px;padding:16px;background:#fff}.detail-section h3{margin:0 0 12px;color:#174b35}.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.detail-item{padding:11px;background:#f5f8f5;border-radius:8px;overflow-wrap:anywhere;min-width:0}.detail-label{font-size:12px;color:#65756a;font-weight:700;margin-bottom:5px}.detail-value{font-size:14px;color:#203326;white-space:pre-wrap;overflow-wrap:anywhere}@media(max-width:600px){.detail-grid{grid-template-columns:1fr}}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+@media(max-width:600px){.panel{padding:15px}header{padding:15px}h2{font-size:18px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Khushhal Kisan — Staff Portal</h1>
+  <div><span id="staffIdentity"></span> <button id="logoutBtn" class="secondary hidden">Logout</button></div>
+</header>
+
+<main>
+  <section id="loginPanel" class="panel">
+    <h2>Staff Login</h2>
+    <label for="apiUrl">API Server URL</label>
+    <input id="apiUrl" placeholder="https://your-api-server">
+    <button id="saveApi">Save API URL</button>
+    <hr style="border:0;border-top:1px solid #e4ebe6;margin:20px 0">
+    <form id="loginForm">
+      <label for="username">Staff Username / ID</label>
+      <input id="username" autocomplete="username" required>
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <button id="loginBtn" type="submit">Login</button>
+      <div id="loginMessage" class="message"></div>
+    </form>
+    <p class="muted">Login details are provided by your administrator.</p>
+  </section>
+
+  <section id="dashboard" class="hidden">
+    <div class="panel">
+      <div class="topline"><div><h2>Staff Dashboard</h2><div class="muted">Only records allowed by your assigned permissions are shown.</div></div><button id="refreshBtn" class="secondary">Refresh</button></div>
+    </div>
+    <div id="summaryCards" aria-live="polite"></div>
+    <div class="panel">
+      <div id="tabs" class="tabs"></div>
+      <div id="listMessage" class="muted">Select a section.</div>
+      <div class="table-wrap">
+        <table>
+          <thead id="tableHead"></thead>
+          <tbody id="records"></tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <button id="prevBtn" class="secondary">Previous</button>
+        <span id="pageInfo" class="muted"></span>
+        <button id="nextBtn" class="secondary">Next</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="detailModal" class="hidden">
+  <div class="modal-box">
+    <div class="topline"><h2 id="detailTitle">Record Details</h2><button id="closeDetail" class="secondary">Back to Survey List</button></div>
+    <div id="detailMessage" class="muted">Loading details...</div>
+    <div id="detailData" class="detail-sections"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+const $ = id => document.getElementById(id);
+const API_KEY = 'kk_admin_api_url';
+let API = (localStorage.getItem(API_KEY) || window.KK_API_URL ||
+  ((location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? 'http://localhost:5000' : 'https://khushhal-kisan-api.onrender.com')).replace(/\/$/,'');
+let token = sessionStorage.getItem('kk_staff_token') || '';
+let permissions = {};
+let currentTab = '';
+let currentOffset = 0;
+let availableTabs = [];
+let summaryRequestId = 0;
+const pageSize = 50;
+
+$('apiUrl').value = API;
+
+function setMessage(id, message, error=false) {
+  $(id).textContent = message;
+  $(id).style.color = error ? '#a12c2c' : '#64756b';
+}
+
+function authHeaders() {
+  return { Authorization: 'Bearer ' + token };
+}
+
+async function apiFetch(path, options={}) {
+  const response = await fetch(API + path, {
+    ...options,
+    headers: { ...(options.headers || {}), ...authHeaders() }
+  });
+  const data = await response.json().catch(() => ({}));
+  if (response.status === 401) {
+    logout();
+    throw new Error(data.message || 'Session expired. Please login again.');
+  }
+  if (!response.ok || data.success === false) {
+    throw new Error(data.message || 'Request failed.');
+  }
+  return data;
+}
+
+$('saveApi').addEventListener('click', () => {
+  const value = $('apiUrl').value.trim().replace(/\/$/,'');
+  if (!/^https?:\/\//i.test(value)) {
+    setMessage('loginMessage','Enter a valid API URL.',true);
+    return;
+  }
+  API = value;
+  localStorage.setItem(API_KEY, API);
+  setMessage('loginMessage','API URL saved.');
+});
+
+$('loginForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  $('loginBtn').disabled = true;
+  setMessage('loginMessage','Checking login...');
+  try {
+    const response = await fetch(API + '/api/staff/login', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        username:$('username').value.trim(),
+        password:$('password').value
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success || !data.token) {
+      throw new Error(data.message || 'Login failed.');
+    }
+    token = data.token;
+    sessionStorage.setItem('kk_staff_token', token);
+    await loadProfile();
+  } catch (error) {
+    setMessage('loginMessage',error.message,true);
+  } finally {
+    $('loginBtn').disabled = false;
+  }
+});
+
+async function loadProfile() {
+  const data = await apiFetch('/api/staff/me');
+  permissions = data.permissions || {};
+  $('loginPanel').classList.add('hidden');
+  $('dashboard').classList.remove('hidden');
+  $('logoutBtn').classList.remove('hidden');
+  $('staffIdentity').textContent = data.username || 'Staff';
+  buildTabs();
+}
+
+function buildTabs() {
+  const definitions = [
+    {id:'farmer',label:'Submitted Farmer',allowed:!!permissions.farmer && (!!permissions.newData || !!permissions.oldData),pending:false,type:'farmer'},
+    {id:'stakeholder',label:'Submitted FPO',allowed:!!permissions.stakeholder && (!!permissions.newData || !!permissions.oldData),pending:false,type:'stakeholder'},
+    {id:'pending_farmer',label:'Pending Farmer',allowed:!!permissions.pendingFarmer,pending:true,type:'farmer'},
+    {id:'pending_stakeholder',label:'Pending FPO',allowed:!!permissions.pendingStakeholder,pending:true,type:'stakeholder'}
+  ];
+  const tabs = definitions.filter(item => item.allowed);
+  availableTabs = tabs;
+  renderSummaryPlaceholders();
+  $('tabs').replaceChildren();
+  tabs.forEach(item => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = item.label;
+    button.dataset.tab = item.id;
+    button.addEventListener('click', () => switchTab(item.id));
+    $('tabs').append(button);
+  });
+  if (!tabs.length) {
+    setMessage('listMessage','No record permissions have been assigned to this account.',true);
+    $('tableHead').replaceChildren();
+    $('records').replaceChildren();
+    $('pageInfo').textContent = '';
+    return;
+  }
+  refreshDashboard();
+}
+
+function renderSummaryPlaceholders() {
+  const container = $('summaryCards');
+  container.replaceChildren();
+  availableTabs.forEach(item => {
+    const card = document.createElement('section');
+    card.className = 'summary-card loading';
+    const label = document.createElement('div');
+    label.className = 'summary-label';
+    label.textContent = item.label;
+    const count = document.createElement('div');
+    count.className = 'summary-count';
+    count.textContent = '—';
+    count.dataset.countFor = item.id;
+    const note = document.createElement('div');
+    note.className = 'summary-note';
+    note.textContent = 'Loading permitted records';
+    card.append(label,count,note);
+    container.append(card);
+  });
+}
+
+async function loadDashboardSummary() {
+  const requestId = ++summaryRequestId;
+  const results = await Promise.all(availableTabs.map(async item => {
+    const endpoint = item.pending ? '/api/admin/enquiries' : '/api/admin/surveys';
+    const query = '?type=' + encodeURIComponent(item.type) + '&limit=1&offset=0';
+    try {
+      const data = await apiFetch(endpoint + query);
+      return { id:item.id, total:Number(data.total || 0), error:null };
+    } catch (error) {
+      return { id:item.id, total:null, error:error.message };
+    }
+  }));
+  if (requestId !== summaryRequestId) return;
+  results.forEach(result => {
+    const count = document.querySelector('[data-count-for="' + result.id + '"]');
+    if (!count) return;
+    const card = count.closest('.summary-card');
+    const note = card.querySelector('.summary-note');
+    card.classList.remove('loading');
+    if (result.error) {
+      count.textContent = '—';
+      note.textContent = result.error;
+      note.title = result.error;
+    } else {
+      count.textContent = result.total.toLocaleString('en-IN');
+      note.textContent = 'Records available with your permissions';
+      note.removeAttribute('title');
+    }
+  });
+}
+
+function refreshDashboard() {
+  loadDashboardSummary();
+  if (currentTab && availableTabs.some(item => item.id === currentTab)) {
+    loadRecords();
+  } else if (availableTabs.length) {
+    switchTab(availableTabs[0].id);
+  }
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  currentOffset = 0;
+  document.querySelectorAll('#tabs button').forEach(button => {
+    button.classList.toggle('active',button.dataset.tab === tab);
+  });
+  loadRecords();
+}
+
+async function loadRecords() {
+  if (!currentTab) return;
+  setMessage('listMessage','Loading records...');
+  $('records').replaceChildren();
+  $('prevBtn').disabled = true;
+  $('nextBtn').disabled = true;
+
+  const pending = currentTab.startsWith('pending_');
+  const type = currentTab.endsWith('stakeholder') ? 'stakeholder' : 'farmer';
+  const endpoint = pending ? '/api/admin/enquiries' : '/api/admin/surveys';
+
+  try {
+    const data = await apiFetch(endpoint + '?type=' + type +
+      '&limit=' + pageSize + '&offset=' + currentOffset);
+    const rows = pending ? (data.pending || []) : (data.surveys || []);
+    const total = Number(data.total || 0);
+
+    const headings = pending
+      ? ['Pending ID','Name','Mobile','Location','Last Updated','Details']
+      : ['Survey ID','Name','Mobile','Source','Submitted','Details'];
+
+    const head = document.createElement('tr');
+    headings.forEach(label => {
+      const th = document.createElement('th');
+      th.textContent = label;
+      head.append(th);
+    });
+    $('tableHead').replaceChildren(head);
+
+    if (!rows.length) {
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      cell.colSpan = headings.length;
+      cell.textContent = 'No records found.';
+      row.append(cell);
+      $('records').append(row);
+    } else {
+      rows.forEach(record => {
+        const row = document.createElement('tr');
+        const values = pending
+          ? [record.response_id || record.id,record.name,record.mobile,record.location,record.updated_at]
+          : [record.response_id || record.id,record.name,record.mobile,record.source,record.submitted_at];
+        values.forEach(value => {
+          const cell = document.createElement('td');
+          cell.textContent = value == null ? '' :
+            (String(value).match(/^\d{4}-\d\d-\d\dT/) ? new Date(value).toLocaleString('en-IN') : String(value));
+          row.append(cell);
+        });
+        const actionCell = document.createElement('td');
+        const view = document.createElement('button');
+        view.type = 'button';
+        view.textContent = 'View Details';
+        view.addEventListener('click',() => showDetails(record,pending,type));
+        actionCell.append(view);
+        row.append(actionCell);
+        $('records').append(row);
+      });
+    }
+
+    setMessage('listMessage', 'Records: ' + total);
+    const start = total ? currentOffset + 1 : 0;
+    const end = Math.min(currentOffset + rows.length,total);
+    $('pageInfo').textContent = start + '–' + end + ' of ' + total;
+    $('prevBtn').disabled = currentOffset <= 0;
+    $('nextBtn').disabled = currentOffset + rows.length >= total || rows.length === 0;
+  } catch (error) {
+    setMessage('listMessage',error.message,true);
+  }
+}
+
+function readableLabel(key) {
+  const labels = {
+    name:'Name', full_name:'Full Name', mobile:'Mobile Number',
+    phone:'Phone Number', location:'Location', village:'Village',
+    district:'District', state:'State', block:'Block',
+    survey_type:'Survey Type', language:'Language',
+    submitted_at:'Submitted At', created_at:'Created At',
+    updated_at:'Last Updated', response_id:'Survey ID',
+    source:'Data Source', answers:'Survey Answers', khushhal_app_useful:'Khushhal Kisan App Usefulness'
+  };
+  if (labels[key]) return labels[key];
+  return String(key).replace(/([a-z])([A-Z])/g,'$1 $2')
+    .replace(/[_-]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+}
+
+function readableValue(value) {
+  if (value === null || value === undefined || value === '') return '';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (Array.isArray(value)) return value.map(readableValue).filter(Boolean).join(', ');
+  if (typeof value === 'object') {
+    return Object.entries(value)
+      .map(([key,val]) => readableLabel(key) + ': ' + readableValue(val))
+      .filter(line => !line.endsWith(': '))
+      .join('\n');
+  }
+  const str = String(value);
+  if (/^\d{4}-\d\d-\d\dT/.test(str)) {
+    const date = new Date(str);
+    if (!Number.isNaN(date.getTime())) return date.toLocaleString('en-IN');
+  }
+  return str;
+}
+
+function appendDetailSection(container,title,entries) {
+  const usable = entries.filter(([key,value]) =>
+    value !== null && value !== undefined && value !== ''
+  );
+  if (!usable.length) return;
+
+  const section = document.createElement('section');
+  section.className = 'detail-section';
+
+  const heading = document.createElement('h3');
+  heading.textContent = title;
+  section.append(heading);
+
+  const grid = document.createElement('div');
+  grid.className = 'detail-grid';
+
+  usable.forEach(([key,value]) => {
+    const item = document.createElement('div');
+    item.className = 'detail-item';
+
+    const label = document.createElement('div');
+    label.className = 'detail-label';
+    label.textContent = readableLabel(key);
+
+    const content = document.createElement('div');
+    content.className = 'detail-value';
+    content.textContent = readableValue(value);
+
+    item.append(label,content);
+    grid.append(item);
+  });
+
+  section.append(grid);
+  container.append(section);
+}
+
+function renderReadableDetails(detail) {
+  const container = $('detailData');
+  container.replaceChildren();
+
+  const hiddenKeys = new Set([
+    'id','draft_key','legacy_response_id','farmer_id',
+    'stakeholder_id','current_step','password','password_hash',
+    'token','session_token','deleted_at'
+  ]);
+
+  const metadata = {};
+  ['response_id','name','mobile','location','survey_type',
+   'language','source','created_at','submitted_at','updated_at']
+    .forEach(key => {
+      if (detail[key] !== undefined && detail[key] !== null) {
+        metadata[key] = detail[key];
+      }
+    });
+
+  appendDetailSection(container,'Survey Information',Object.entries(metadata));
+
+  let answers = detail.answers;
+  if (typeof answers === 'string') {
+    try { answers = JSON.parse(answers); } catch (_) {}
+  }
+
+  if (answers && typeof answers === 'object' && !Array.isArray(answers)) {
+    appendDetailSection(container,'Survey Answers',Object.entries(answers));
+  } else if (Array.isArray(answers)) {
+    appendDetailSection(container,'Survey Answers',
+      answers.map((item,index) => [String(index + 1),item]));
+  }
+
+  const excluded = new Set([
+    ...hiddenKeys,'answers','response_id','name','mobile','location',
+    'survey_type','language','source','created_at','submitted_at','updated_at'
+  ]);
+
+  const otherFields = Object.entries(detail).filter(([key,value]) =>
+    !excluded.has(key) && value !== null && value !== undefined && value !== ''
+  );
+
+  appendDetailSection(container,'Other Information',otherFields);
+
+  if (!container.children.length) {
+    const empty = document.createElement('p');
+    empty.textContent = 'No readable details are available for this record.';
+    container.append(empty);
+  }
+}
+async function showDetails(record,pending,type) {
+  $('detailModal').classList.remove('hidden');
+  $('detailTitle').textContent = pending ? 'Pending Record Details' : 'Submitted Survey Details';
+  $('detailData').textContent = '';
+  setMessage('detailMessage','Loading full details...');
+  try {
+    let endpoint;
+    if (pending) {
+      endpoint = '/api/admin/enquiry-detail/' + encodeURIComponent(record.id) +
+        '?type=' + encodeURIComponent(type);
+    } else {
+      const source = record.source === 'Old (Neon)' ? 'old' : 'local';
+      endpoint = '/api/admin/survey-detail/' + source + '/' +
+        encodeURIComponent(record.id) + '?type=' + encodeURIComponent(type);
+    }
+    const data = await apiFetch(endpoint);
+    const detail = pending ? data.pending : data.survey;
+    if (!detail) throw new Error('Record details were not returned.');
+    renderReadableDetails(detail);
+    setMessage('detailMessage','Full record details loaded.');
+  } catch (error) {
+    setMessage('detailMessage',error.message,true);
+  }
+}
+
+$('prevBtn').addEventListener('click',() => {
+  currentOffset = Math.max(0,currentOffset-pageSize);
+  loadRecords();
+});
+$('nextBtn').addEventListener('click',() => {
+  currentOffset += pageSize;
+  loadRecords();
+});
+$('refreshBtn').addEventListener('click',refreshDashboard);
+$('closeDetail').addEventListener('click',() => $('detailModal').classList.add('hidden'));
+$('detailModal').addEventListener('click',event => {
+  if (event.target === $('detailModal')) $('detailModal').classList.add('hidden');
+});
+
+function logout() {
+  token = '';
+  permissions = {};
+  currentTab = '';
+  availableTabs = [];
+  summaryRequestId++;
+  sessionStorage.removeItem('kk_staff_token');
+  $('dashboard').classList.add('hidden');
+  $('logoutBtn').classList.add('hidden');
+  $('loginPanel').classList.remove('hidden');
+  $('password').value = '';
+  $('staffIdentity').textContent = '';
+  $('tabs').replaceChildren();
+  $('summaryCards').replaceChildren();
+  $('records').replaceChildren();
+  $('tableHead').replaceChildren();
+}
+$('logoutBtn').addEventListener('click',logout);
+
+if (token) {
+  loadProfile().catch(error => {
+    logout();
+    setMessage('loginMessage',error.message,true);
+  });
+}
+})();
+</script>
+</body>
+</html>
