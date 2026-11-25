@@ -848,7 +848,7 @@ async function loadRecords(){
         : (record.submitted_at || record.created_at);
 
       const dateText = dateValue
-        ? new Date(dateValue).toLocaleString('en-IN')
+        ? (new Date(dateValue) < new Date('2026-11-25T18:03:47.413Z') ? new Date(dateValue).toLocaleDateString('en-IN') : new Date(dateValue).toLocaleString('en-IN'))
         : '';
 
       const values = isPending
@@ -882,6 +882,7 @@ async function loadRecords(){
     $('recordPagination').replaceChildren();
 
     const prev = document.createElement('button');
+    prev.type = 'button';
     prev.textContent = t('Previous');
     prev.className = 'secondary';
     prev.disabled = currentOffset === 0;
@@ -891,6 +892,7 @@ async function loadRecords(){
     };
 
     const next = document.createElement('button');
+    next.type = 'button';
     next.textContent = t('Next');
     next.className = 'secondary';
     next.disabled = currentOffset + pageSize >= d.total;
@@ -987,10 +989,10 @@ async function showDetails(record){
       [t('Survey Type')]: t(detailRecord.survey_type || ''),
       [t('Language')]: detailRecord.language || '',
       [t('Created At')]: detailRecord.created_at
-        ? new Date(detailRecord.created_at).toLocaleString('en-IN')
+        ? (new Date(detailRecord.created_at) < new Date('2026-11-25T18:03:47.413Z') ? new Date(detailRecord.created_at).toLocaleDateString('en-IN') : new Date(detailRecord.created_at).toLocaleString('en-IN'))
         : '',
       [t('Submitted At')]: detailRecord.submitted_at
-        ? new Date(detailRecord.submitted_at).toLocaleString('en-IN')
+        ? (new Date(detailRecord.submitted_at) < new Date('2026-11-25T18:03:47.413Z') ? new Date(detailRecord.submitted_at).toLocaleDateString('en-IN') : new Date(detailRecord.submitted_at).toLocaleString('en-IN'))
         : t('Not submitted'),
       ...Object.fromEntries(
         Object.entries(answers).map(([key, value]) => [
